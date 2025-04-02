@@ -1,0 +1,85 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    background-color: #0a0a0a;
+    color: #8a8a8a;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#loading-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.loading-text {
+    font-size: 2rem;
+    color: #c7c7c7;
+    text-shadow: 0 0 5px #73a1ff;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+#info {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #333;
+    border-radius: 5px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.controls-info p {
+    font-size: 0.9rem;
+    color: #a0a0a0;
+}
+
+#debug {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #00ff00;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 14px;
+    z-index: 1000;
+    border: 1px solid #444;
+    max-width: 80%;
+    overflow-wrap: break-word;
+} 
