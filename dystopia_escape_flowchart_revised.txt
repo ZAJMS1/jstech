@@ -1,0 +1,176 @@
+# DYSTOPIA ESCAPE: INTERACTIVE STORY FLOWCHART (REVISED)
+
+```
+START: OPENING CUTSCENE
+│
+└─── CHARACTER INNER MONOLOGUE
+     "Another sleepless night in this prison they call a city. The sirens never stop.
+     I've gathered enough intel on the regime's weaknesses. Time to make my move
+     before they figure out who I really am. I need to get beyond the border - tonight."
+     │
+     └─── INITIAL CHOICE: The Backpack
+          │
+          ├─── Take backpack ────────────────────────┐
+          │                                          │
+          │                                          │ 
+          │                                          └─→ Add to inventory:
+          │                                              - Crowbar: Can force doors & remove obstacles
+          │                                              - Sandwich: Restore health/stamina once
+          │
+          └─── Leave without backpack ────────────────┐
+                                                     │
+                                                     │
+                                                     └─→ Continue with limited options
+                                                        (Some paths will be closed/harder)
+
+AFTER LEAVING HOUSE: THE STREET
+│
+└─── EVENT 1: The Street
+     │
+     ├─── Walk to city center ─────┐
+     │                             │
+     │                             └─→ CHECKPOINT EVENT
+     │                                 │
+     │                                 ├─── Present ID ───────→ PASS/FAIL
+     │                                 │                        (Backpack allows hiding ID inside sandwich wrapper)
+     │                                 │
+     │                                 ├─── Create distraction → HIGH RISK, HIGH REWARD
+     │                                 │                         (Crowbar option available if backpack taken)
+     │                                 │
+     │                                 └─── Turn back ────────→ HARDER PATH
+     │
+     ├─── Move through alleys ────→ POTENTIAL ALLIES EVENT
+     │                              (Crowbar can force locked gate for shortcut if backpack taken)
+     │
+     └─── Try to steal vehicle ───→ HIGH RISK OF CAPTURE
+                                    (Crowbar makes hot-wiring easier if backpack taken)
+
+
+ESCAPE ROUTES
+
+ESCAPE ROUTE 1: Radio Contact
+│
+└─→ EVENT: Mysterious Transmission
+    │
+    ├─── Investigate signal ──────┐
+    │                             │
+    │                             └─→ EVENT: Extraction Rendezvous
+    │                                 │
+    │                                 ├─── Follow instructions ───→ SUCCESS ENDING 1
+    │                                 │                            (Sharing sandwich with contact improves trust if backpack taken)
+    │                                 │
+    │                                 ├─── Approach cautiously ──→ RISK OF FAILURE
+    │                                 │
+    │                                 └─── Negotiate ────────────→ COMPLICATED PATH
+    │
+    └─── Ignore transmission ────→ ALTERNATIVE PATH
+
+ESCAPE ROUTE 2: Underground Tunnels
+│
+└─→ EVENT: Locked Basement Entrance
+    │
+    ├─── Find key ─────────────────→ Access tunnels normally
+    │
+    └─── Force entrance with crowbar → Access tunnels (requires backpack)
+        │
+        └─→ EVENT: The Crossroads
+            │
+            ├─── Agricultural Zone ───→ SUCCESS ENDING 2
+            │
+            ├─── Unmarked tunnel ────→ Resistance hideout
+            │                         (Sandwich can be shared with hungry resistance member if backpack taken)
+            │
+            └─── Follow footprints ──→ Patrol encounter
+                                       (Crowbar serves as weapon if backpack taken)
+
+ESCAPE ROUTE 3: The Microchip
+│
+└─→ EVENT: Transit Terminal
+    │
+    ├─── Access cargo train ───→ STOWAWAY CHALLENGE
+    │                           (Crowbar helps open maintenance hatch if backpack taken)
+    │
+    ├─── Access personnel ─────→ ALLY PATH
+    │
+    └─── Create false alarm ──→ HIGH RISK, HIGH REWARD
+
+POTENTIAL ALLIES/ENEMIES ENCOUNTERS
+
+RESISTANCE CONTACT
+│
+└─── EVENT: Trust Decision
+     │
+     ├─── Accept fully ───────→ TRUE ALLY or BETRAYAL
+     │                         (Offer sandwich to build trust if backpack taken)
+     │
+     ├─── Accept cautiously ──→ MEDIUM PATH
+     │
+     └─── Reject help ────────→ HARDER PATH
+
+SYMPATHETIC OFFICIAL
+│
+└─── EVENT: Corruption Offer
+     │
+     ├─── Bribe them ─────────→ SUCCESS ENDING 4 or CAPTURE
+     │
+     ├─── Appeal to conscience → SKILL CHECK
+     │                          (Showing family photo in wallet if backpack taken increases success chance)
+     │
+     └─── Blackmail ──────────→ DANGEROUS PATH
+
+INFORMANT
+│
+└─── EVENT: Betrayal
+     │
+     ├─── Flee immediately ───→ CHASE SEQUENCE
+     │                         (Crowbar can block door behind you if backpack taken)
+     │
+     ├─── Negotiate ──────────→ SHORT PATH
+     │                         (Offering sandwich as goodwill gesture if backpack taken)
+     │
+     └─── Neutralize threat ──→ DARK PATH
+                               (Crowbar provides non-lethal option if backpack taken)
+
+SUCCESS ENDINGS
+│
+├─── SUCCESS ENDING 1: Resistance Extraction
+│
+├─── SUCCESS ENDING 2: Agricultural Zone
+│
+├─── SUCCESS ENDING 3: Smuggler's Route
+│
+└─── SUCCESS ENDING 4: Inside Job
+
+FAILURE ENDINGS
+│
+├─── DEATH/CAPTURE ENDING 1: Traced Signal
+│
+├─── DEATH/CAPTURE ENDING 2: Failed Checkpoint
+│
+├─── DEATH/CAPTURE ENDING 3: Tunnel Collapse
+│
+├─── DEATH/CAPTURE ENDING 4: Betrayed
+│
+└─── DEATH/CAPTURE ENDING 5: The Chase
+```
+
+## SPECIAL MECHANICS
+
+### INVENTORY SYSTEM
+- Backpack choice at beginning significantly affects gameplay options
+- Crowbar: Opens locked doors, serves as tool and weapon
+- Sandwich: Can restore health or be shared to build trust
+- Limited inventory → Strategic decisions
+
+### MEMORY FRAGMENTS
+- Discover past → Unlock new options
+- Memory thresholds → Access unique paths
+
+### LOYALTY SYSTEM
+- Treat allies well → Get crucial help
+- Betray others → Create new enemies
+- Sharing resources (sandwich) → Builds trust
+
+### TIME PRESSURE
+- Events continue → World moves forward
+- Stay too long → Risk of capture increases 
