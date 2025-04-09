@@ -3,46 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dystopian Escape</title>
+    <title>Dystopian World - Home</title>
     <link rel="stylesheet" href="css/styles.css">
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+    <style>
+        .home-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #0a0a0a;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1544646290-5c0a2fe80da7?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+            color: #ccc;
+            overflow: hidden;
+        }
+        
+        .title {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5rem;
+            text-shadow: 0 0 10px #73a1ff, 0 0 20px #73a1ff;
+            animation: flicker 3s infinite alternate;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: #888;
+            text-shadow: 0 0 5px #444;
+        }
+        
+        .play-button {
+            padding: 1rem 3rem;
+            font-size: 1.5rem;
+            background-color: transparent;
+            border: 2px solid #73a1ff;
+            color: #73a1ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.3rem;
+            position: relative;
+            overflow: hidden;
+            margin-top: 2rem;
+        }
+        
+        .play-button:hover {
+            background-color: rgba(115, 161, 255, 0.2);
+            box-shadow: 0 0 15px #73a1ff;
+            transform: scale(1.05);
+        }
+        
+        .play-button:active {
+            transform: scale(0.98);
+        }
+        
+        @keyframes flicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+                text-shadow: 0 0 10px #73a1ff, 0 0 20px #73a1ff;
+            }
+            20%, 24%, 55% {
+                text-shadow: none;
             }
         }
-    </script>
+        
+        .glitch-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.3), transparent);
+            opacity: 0;
+            animation: glitch 2s infinite;
+        }
+        
+        @keyframes glitch {
+            0% {
+                transform: translateX(-10%);
+                opacity: 0;
+            }
+            10%, 90% {
+                opacity: 0;
+            }
+            50% {
+                transform: translateX(100%);
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="loading-screen">
-            <div class="loading-text">Loading Dystopian World...</div>
-        </div>
-        <div id="info">
-            <div class="controls-info">
-                <p>WASD - Move | SPACE - Jump | MOUSE - Look | E - Inventory</p>
-            </div>
-        </div>
-        <div id="debug"></div>
-        <div id="inventory-panel">
-            <h2 id="inventory-title">Inventory</h2>
-            <div class="inventory-grid" id="inventory-grid"></div>
-            <div class="key-tip">Press E to close</div>
-        </div>
-
-        <!-- Audio elements -->
-        <audio id="ambient-wind" loop preload="auto">
-            <source src="assets/audio/howling-wind.mp3" type="audio/mp3">
-        </audio>
-        <audio id="distant-thunder" preload="auto">
-            <source src="assets/audio/thunder.mp3" type="audio/mp3">
-        </audio>
-        <audio id="eerie-ambient" loop preload="auto">
-            <source src="assets/audio/dark-ambience.mp3" type="audio/mp3">
-        </audio>
+    <div class="home-container">
+        <h1 class="title">Dystopian Escape</h1>
+        <h2 class="subtitle">Enter a world of shadows and survival</h2>
+        <a href="game.html">
+            <button class="play-button">
+                Play Now
+                <div class="glitch-effect"></div>
+            </button>
+        </a>
     </div>
     
-    <script type="module" src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add random glitch effects to the title
+            const title = document.querySelector('.title');
+            setInterval(() => {
+                if (Math.random() > 0.95) {
+                    title.style.letterSpacing = '0.2rem';
+                    title.style.transform = 'skew(2deg, 1deg)';
+                    setTimeout(() => {
+                        title.style.letterSpacing = '0.5rem';
+                        title.style.transform = 'skew(0deg, 0deg)';
+                    }, 100);
+                }
+            }, 500);
+        });
+    </script>
 </body>
 </html>
