@@ -253,9 +253,9 @@
                     rightMouseDown: false,
                     mousePosition: { x: 0, y: 0 },
                     onGround: true,
-                    movementSpeed: 0.25,
+                    movementSpeed: 0.3,
                     turnSpeed: 0.03,
-                    jumpForce: 0.22,
+                    jumpForce: 0.27,
                     gravity: 0.0125,
                     animationState: 'idle',
                     timeSinceLastStep: 0,
@@ -278,7 +278,1938 @@
                         initialized: false
                     },
                     gamePaused: false, // Add pause state
-                    spaceKeyReleased: true, // Track if space key has been released
+                };
+                
+                // Initialize inventory system
+                function initInventorySystemOld() { // Renamed to avoid conflict
+                    // Only initialize once
+                    if (state.inventory.initialized) return;
+                    
+                    // Mark as initialized
+                    state.inventory.initialized = true;
+                    
+                    // Clear existing slots if any
+                    const inventoryGrid = document.getElementById('inventory-grid');
+                    if (!inventoryGrid) {
+                        console.error("Inventory grid element not found!");
+                        return;
+                    }
+                    
+                    inventoryGrid.innerHTML = '';
+                    state.inventory.slotElements = [];
+                    
+                    // Create inventory slots
+                    for (let i = 0; i < state.inventory.slots; i++) {
+                        const slot = document.createElement('div');
+                        slot.className = 'inventory-slot';
+                        slot.dataset.index = i;
+                        slot.innerHTML = `<div class="item-tooltip"></div>`;
+                        
+                        // Add click handler for using items
+                        slot.addEventListener('click', () => {
+                            const item = state.inventory.items[i];
+                            if (item) {
+                                // Handle item usage (can be expanded later)
+                                console.log(`Used item: ${item.name}`);
+                            }
+                        });
+                        
+                        inventoryGrid.appendChild(slot);
+                        state.inventory.slotElements.push(slot);
+                    }
+                    
+                    // Add some test items to inventory
+                    addItemToInventory({
+                        name: "Health Potion",
+                        description: "Restores 25 health points",
+                        icon: "🧪", // Using emoji for simplicity
+                        count: 1
+                    });
+                    
+                    addItemToInventory({
+                        name: "Rusty Key",
+                        description: "Might open something",
+                        icon: "🔑",
+                        count: 1
+                    });
+                    
+                    console.log("Inventory system initialized with", state.inventory.slots, "slots");
+                }
+
+                // Add item to inventory
+                function addItemToInventory(item) {
+                    // Check if item already exists
+                    const existingItemIndex = state.inventory.items.findIndex(i => 
+                        i && i.name === item.name);
+                    
+                    if (existingItemIndex >= 0 && state.inventory.items[existingItemIndex].stackable !== false) {
+                        // Increment count for existing item
+                        state.inventory.items[existingItemIndex].count += item.count || 1;
+                        updateInventoryDisplay();
+                        return true;
+                    } else {
+                        // Find empty slot
+                        const emptySlotIndex = state.inventory.items.findIndex(i => !i);
+                        
+                        if (emptySlotIndex >= 0 && emptySlotIndex < state.inventory.slots) {
+                            // Add to empty slot
+                            state.inventory.items[emptySlotIndex] = item;
+                            updateInventoryDisplay();
+                            return true;
+                        } else if (state.inventory.items.length < state.inventory.slots) {
+                            // Add to new slot
+                            state.inventory.items.push(item);
+                            updateInventoryDisplay();
+                            return true;
+                        }
+                    }
+                    
+                    // Inventory full
+                    console.log("Inventory full!");
+                    return false;
+                }
+
+                // Update inventory display
+                function updateInventoryDisplay() {
+                    if (!state.inventory.initialized) return;
+                    
+                    // Remove any existing floating tooltips
+                    document.querySelectorAll('.floating-tooltip').forEach(el => el.remove());
+                    
+                    for (let i = 0; i < state.inventory.slots; i++) {
+                        const slot = state.inventory.slotElements[i];
+                        if (!slot) continue;
+                        
+                        const item = state.inventory.items[i];
+                        
+                        if (item) {
+                            // Update slot with item info
+                            slot.innerHTML = `<div>${item.icon}</div>
+                                ${item.count > 1 ? `<div class="item-count">${item.count}</div>` : ''}`;
+                            
+                            // Add mouseover event to show tooltip
+                            slot.onmouseover = () => {
+                                const rect = slot.getBoundingClientRect();
+                                const tooltip = document.createElement('div');
+                                tooltip.className = 'floating-tooltip';
+                                tooltip.textContent = item.name;
+                                tooltip.style.position = 'absolute';
+                                tooltip.style.left = (rect.left + rect.width/2) + 'px';
+                                tooltip.style.top = (rect.bottom + 10) + 'px';
+                                tooltip.style.transform = 'translateX(-50%)';
+                                tooltip.style.backgroundColor = 'rgba(10, 10, 30, 0.9)';
+                                tooltip.style.color = 'white';
+                                tooltip.style.padding = '5px 10px';
+                                tooltip.style.borderRadius = '5px';
+                                tooltip.style.fontWeight = 'bold';
+                                tooltip.style.boxShadow = '0 0 8px rgba(100, 100, 255, 0.5)';
+                                tooltip.style.zIndex = '999';
+                                tooltip.style.pointerEvents = 'none';
+                                tooltip.style.border = '1px solid #555';
+                                document.body.appendChild(tooltip);
+                            };
+                            
+                            // Add mouseout event to hide tooltip
+                            slot.onmouseout = () => {
+                                document.querySelectorAll('.floating-tooltip').forEach(el => el.remove());
+                            };
+                        } else {
+                            // Empty slot
+                            slot.innerHTML = '';
+                            slot.onmouseover = null;
+                            slot.onmouseout = null;
+                        }
+                    }
+                }
+
+                // Toggle inventory display
+                function toggleInventory() {
+                    // Use only the compact inventory in the top-right corner
+                    if (window.playerInventory) {
+                        // Toggle visibility of the compact inventory
+                        const inventoryUI = document.getElementById('inventory-ui');
+                        if (inventoryUI) {
+                            const currentDisplay = inventoryUI.style.display;
+                            inventoryUI.style.display = currentDisplay === 'none' ? 'block' : 'none';
+                            console.log("Toggled compact inventory visibility");
+                        } else {
+                            console.log("Compact inventory UI not found");
+                        }
+                    }
+                    
+                    // No longer using the panel inventory
+                    // const inventoryPanel = document.getElementById('inventory-panel');
+                    // if (!inventoryPanel) {
+                    //     console.error("Inventory panel element not found!");
+                    //     return;
+                    // }
+                    
+                    // state.inventory.isOpen = !state.inventory.isOpen;
+                    // console.log("Toggle inventory:", state.inventory.isOpen);
+                    
+                    // if (state.inventory.isOpen) {
+                    //     // Initialize inventory if not done yet (safety check)
+                    //     if (!state.inventory.initialized) {
+                    //         initInventorySystemOld();
+                    //     }
+                    //     
+                    //     inventoryPanel.style.display = 'block';
+                    //     updateInventoryDisplay();
+                    //     console.log("Opened inventory");
+                    // } else {
+                    //     inventoryPanel.style.display = 'none';
+                    //     console.log("Closed inventory");
+                    // }
+                }
+
+                // Basic Three.js setup
+                const scene = new THREE.Scene();
+                
+                // Update scene background and fog for a brighter ambiance
+                scene.background = new THREE.Color(0x121212); // Dark background
+                
+                // Set up more realistic static fog for the entire scene
+                // Use a denser FogExp2 for a more atmospheric effect
+                scene.fog = new THREE.FogExp2(0x121212, 0.015); // Slightly less dense fog (0.02 -> 0.015)
+                
+                // Add a subtle color tint to the fog for better atmosphere
+                const fogColor = new THREE.Color(0x121212);
+                fogColor.lerp(new THREE.Color(0x334455), 0.1); // Blend in a slight blue tint
+                scene.fog.color = fogColor;
+                
+                // Enhance ambient lighting - change to darker mood
+                const ambientLight = new THREE.AmbientLight(0x555566, 0.6);
+                scene.add(ambientLight);
+                
+                // Add directional light for natural moonlight effect
+                const dirLight = new THREE.DirectionalLight(0x556677, 0.8);
+                dirLight.position.set(30, 100, 30);
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 2048;
+                dirLight.shadow.mapSize.height = 2048;
+                dirLight.shadow.camera.near = 1;
+                dirLight.shadow.camera.far = 200;
+                dirLight.shadow.camera.left = -50;
+                dirLight.shadow.camera.right = 50;
+                dirLight.shadow.camera.top = 50;
+                dirLight.shadow.camera.bottom = -50;
+                scene.add(dirLight);
+                
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                document.getElementById('game-container').appendChild(renderer.domElement);
+                
+                // Create a house the player can walk around in
+                const houseGroup = new THREE.Group();
+                scene.add(houseGroup);
+                
+                // Materials library
+                const materials = {
+                    // Flooring
+                    woodFloor: new THREE.MeshStandardMaterial({ 
+                        color: 0x9b7653, 
+                        roughness: 0.8,
+                        metalness: 0.2
+                    }),
+                    tileFloor: new THREE.MeshStandardMaterial({ 
+                        color: 0xd9d9d9, 
+                        roughness: 0.7,
+                        metalness: 0.1
+                    }),
+                    carpetFloor: new THREE.MeshStandardMaterial({ 
+                        color: 0x496a81, 
+                        roughness: 0.9,
+                        metalness: 0
+                    }),
+                    
+                    // Walls
+                    wallExterior: new THREE.MeshStandardMaterial({ 
+                        color: 0xe8e8e8, 
+                        roughness: 0.9,
+                        metalness: 0
+                    }),
+                    wallInterior: new THREE.MeshStandardMaterial({ 
+                        color: 0xeaeaea, 
+                        roughness: 0.9,
+                        metalness: 0 
+                    }),
+                    
+                    // Furniture
+                    woodDark: new THREE.MeshStandardMaterial({ 
+                        color: 0x5d4037, 
+                        roughness: 0.8,
+                        metalness: 0.1
+                    }),
+                    woodMedium: new THREE.MeshStandardMaterial({ 
+                        color: 0x8d6e63, 
+                        roughness: 0.8,
+                        metalness: 0.1
+                    }),
+                    woodLight: new THREE.MeshStandardMaterial({ 
+                        color: 0xbcaaa4, 
+                        roughness: 0.8,
+                        metalness: 0.1
+                    }),
+                    fabric: new THREE.MeshStandardMaterial({ 
+                        color: 0x78909c, 
+                        roughness: 0.9,
+                        metalness: 0
+                    }),
+                    fabricDark: new THREE.MeshStandardMaterial({ 
+                        color: 0x455a64, 
+                        roughness: 0.9,
+                        metalness: 0
+                    }),
+                    metal: new THREE.MeshStandardMaterial({ 
+                        color: 0xb0bec5, 
+                        roughness: 0.3,
+                        metalness: 0.8
+                    }),
+                    glass: new THREE.MeshStandardMaterial({ 
+                        color: 0xeceff1, 
+                        roughness: 0.1,
+                        metalness: 0.9,
+                        transparent: true,
+                        opacity: 0.3
+                    }),
+                    
+                    // Roof
+                    roofTiles: new THREE.MeshStandardMaterial({ 
+                        color: 0x5d4037, 
+                        roughness: 0.9,
+                        metalness: 0.1
+                    })
+                };
+                
+                // House dimensions
+                const houseDimensions = {
+                    width: 50,
+                    length: 50,
+                    height: 15,
+                    wallThickness: 1
+                };
+                
+                // Door and window dimensions - use var to avoid redeclaration
+                var frontDoorWidth = 6; // Increased door width
+                var frontDoorHeight = 10; // Increased door height
+                var frontWallHeight = houseDimensions.height * 0.9; // 90% of house height for interior walls
+                var windowWidth = 5;
+                var windowHeight = 5;
+                
+                // Create foundation - main floor
+                const mainFloor = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        houseDimensions.width - 1, 
+                        0.2, 
+                        houseDimensions.length - 1
+                    ),
+                    materials.wallInterior
+                );
+                mainFloor.position.y = 0; // Position at ground level
+                mainFloor.receiveShadow = true;
+                houseGroup.add(mainFloor);
+                
+                // Create ceiling - separate from the floor
+                const ceiling = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        houseDimensions.width - 1, 
+                        0.2, 
+                        houseDimensions.length - 1
+                    ),
+                    materials.wallInterior
+                );
+                ceiling.position.y = houseDimensions.height;
+                ceiling.receiveShadow = true;
+                houseGroup.add(ceiling);
+                
+                // Function to create wall sections
+                function createWallSection(width, height, depth, x, y, z, material) {
+                    const wall = new THREE.Mesh(
+                        new THREE.BoxGeometry(width, height, depth),
+                        material
+                    );
+                    wall.position.set(x, y, z);
+                    wall.castShadow = true;
+                    wall.receiveShadow = true;
+                    wall.userData.collidable = true; // Mark as collidable
+                    return wall;
+                }
+                
+                // Create outer walls
+                // Back wall (full wall)
+                const backWall = createWallSection(
+                    houseDimensions.width, 
+                    houseDimensions.height, 
+                    houseDimensions.wallThickness,
+                    0, 
+                    houseDimensions.height / 2, 
+                    -houseDimensions.length / 2,
+                    materials.wallExterior
+                );
+                houseGroup.add(backWall);
+                
+                // Left wall
+                const leftWall = createWallSection(
+                    houseDimensions.wallThickness, 
+                    houseDimensions.height, 
+                    houseDimensions.length,
+                    -houseDimensions.width / 2, 
+                    houseDimensions.height / 2, 
+                    0,
+                    materials.wallExterior
+                );
+                houseGroup.add(leftWall);
+                
+                // Right wall
+                const rightWall = createWallSection(
+                    houseDimensions.wallThickness, 
+                    houseDimensions.height, 
+                    houseDimensions.length,
+                    houseDimensions.width / 2, 
+                    houseDimensions.height / 2, 
+                    0,
+                    materials.wallExterior
+                );
+                houseGroup.add(rightWall);
+                
+                // Front wall with door opening
+                // Left section
+                const frontWallLeft = createWallSection(
+                    (houseDimensions.width - frontDoorWidth) / 2, 
+                    houseDimensions.height, 
+                    houseDimensions.wallThickness,
+                    -houseDimensions.width / 4 - frontDoorWidth / 4, 
+                    houseDimensions.height / 2, 
+                    houseDimensions.length / 2,
+                    materials.wallExterior
+                );
+                houseGroup.add(frontWallLeft);
+                
+                // Right section
+                const frontWallRight = createWallSection(
+                    (houseDimensions.width - frontDoorWidth) / 2, 
+                    houseDimensions.height, 
+                    houseDimensions.wallThickness,
+                    houseDimensions.width / 4 + frontDoorWidth / 4, 
+                    houseDimensions.height / 2, 
+                    houseDimensions.length / 2,
+                    materials.wallExterior
+                );
+                houseGroup.add(frontWallRight);
+                
+                // Top section
+                const frontWallTop = createWallSection(
+                    frontDoorWidth, 
+                    houseDimensions.height - frontDoorHeight, 
+                    houseDimensions.wallThickness,
+                    0, 
+                    houseDimensions.height - (houseDimensions.height - frontDoorHeight) / 2, 
+                    houseDimensions.length / 2,
+                    materials.wallExterior
+                );
+                houseGroup.add(frontWallTop);
+                
+                // Add windows
+                function createWindow(width, height, x, y, z, rotationY) {
+                    const windowGroup = new THREE.Group();
+                    
+                    // Window glass
+                    const windowPane = new THREE.Mesh(
+                        new THREE.PlaneGeometry(width, height),
+                        materials.glass
+                    );
+                    windowPane.position.set(0, 0, 0.05);
+                    windowGroup.add(windowPane);
+                    
+                    // Window frame
+                    const frameWidth = 0.3;
+                    
+                    // Top frame
+                    const topFrame = new THREE.Mesh(
+                        new THREE.BoxGeometry(width + frameWidth * 2, frameWidth, 0.2),
+                        materials.woodDark
+                    );
+                    topFrame.position.set(0, height / 2 + frameWidth / 2, 0);
+                    windowGroup.add(topFrame);
+                    
+                    // Bottom frame
+                    const bottomFrame = new THREE.Mesh(
+                        new THREE.BoxGeometry(width + frameWidth * 2, frameWidth, 0.2),
+                        materials.woodDark
+                    );
+                    bottomFrame.position.set(0, -height / 2 - frameWidth / 2, 0);
+                    windowGroup.add(bottomFrame);
+                    
+                    // Left frame
+                    const leftFrame = new THREE.Mesh(
+                        new THREE.BoxGeometry(frameWidth, height, 0.2),
+                        materials.woodDark
+                    );
+                    leftFrame.position.set(-width / 2 - frameWidth / 2, 0, 0);
+                    windowGroup.add(leftFrame);
+                    
+                    // Right frame
+                    const rightFrame = new THREE.Mesh(
+                        new THREE.BoxGeometry(frameWidth, height, 0.2),
+                        materials.woodDark
+                    );
+                    rightFrame.position.set(width / 2 + frameWidth / 2, 0, 0);
+                    windowGroup.add(rightFrame);
+                    
+                    // Middle crossbar - horizontal
+                    const middleHBar = new THREE.Mesh(
+                        new THREE.BoxGeometry(width, frameWidth, 0.2),
+                        materials.woodDark
+                    );
+                    middleHBar.position.set(0, 0, 0);
+                    windowGroup.add(middleHBar);
+                    
+                    // Middle crossbar - vertical
+                    const middleVBar = new THREE.Mesh(
+                        new THREE.BoxGeometry(frameWidth, height, 0.2),
+                        materials.woodDark
+                    );
+                    middleVBar.position.set(0, 0, 0);
+                    windowGroup.add(middleVBar);
+                    
+                    // Position the window group
+                    windowGroup.position.set(x, y, z);
+                    windowGroup.rotation.y = rotationY || 0;
+                    
+                    return windowGroup;
+                }
+                
+                // Add windows to the house
+                // Front windows
+                const frontWindowLeft = createWindow(
+                    6, 5, 
+                    -12, 6, 
+                    houseDimensions.length / 2 + 0.1, 
+                    0
+                );
+                houseGroup.add(frontWindowLeft);
+                
+                const frontWindowRight = createWindow(
+                    6, 5, 
+                    12, 6, 
+                    houseDimensions.length / 2 + 0.1, 
+                    0
+                );
+                houseGroup.add(frontWindowRight);
+                
+                // Side windows
+                const leftWindowFront = createWindow(
+                    6, 5, 
+                    -houseDimensions.width / 2 - 0.1, 6, 
+                    15, 
+                    Math.PI / 2
+                );
+                houseGroup.add(leftWindowFront);
+                
+                const leftWindowBack = createWindow(
+                    6, 5, 
+                    -houseDimensions.width / 2 - 0.1, 6, 
+                    -15, 
+                    Math.PI / 2
+                );
+                houseGroup.add(leftWindowBack);
+                
+                const rightWindowFront = createWindow(
+                    6, 5, 
+                    houseDimensions.width / 2 + 0.1, 6, 
+                    15, 
+                    -Math.PI / 2
+                );
+                houseGroup.add(rightWindowFront);
+                
+                const rightWindowBack = createWindow(
+                    6, 5, 
+                    houseDimensions.width / 2 + 0.1, 6, 
+                    -15, 
+                    -Math.PI / 2
+                );
+                houseGroup.add(rightWindowBack);
+                
+                // Back windows
+                const backWindowLeft = createWindow(
+                    6, 5, 
+                    -12, 6, 
+                    -houseDimensions.length / 2 - 0.1, 
+                    Math.PI
+                );
+                houseGroup.add(backWindowLeft);
+                
+                const backWindowMiddle = createWindow(
+                    6, 5, 
+                    0, 6, 
+                    -houseDimensions.length / 2 - 0.1, 
+                    Math.PI
+                );
+                houseGroup.add(backWindowMiddle);
+                
+                const backWindowRight = createWindow(
+                    6, 5, 
+                    12, 6, 
+                    -houseDimensions.length / 2 - 0.1, 
+                    Math.PI
+                );
+                houseGroup.add(backWindowRight);
+                
+                // Furniture
+                // Table
+                const smallTableHeight = 0.8;
+                const smallTableTop = new THREE.Mesh(
+                    new THREE.BoxGeometry(2, 0.1, 1.2),
+                    materials.woodMedium
+                );
+                smallTableTop.position.set(-2, smallTableHeight, -2);
+                smallTableTop.castShadow = true;
+                houseGroup.add(smallTableTop);
+                
+                // Table legs
+                for (let x = -1; x <= 1; x += 2) {
+                    for (let z = -1; z <= 1; z += 2) {
+                        const tableLeg = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.05, 0.05, smallTableHeight),
+                            materials.woodDark
+                        );
+                        tableLeg.position.set(-2 + x * 0.9, smallTableHeight / 2, -2 + z * 0.5);
+                        tableLeg.castShadow = true;
+                        houseGroup.add(tableLeg);
+                    }
+                }
+                
+                // Chairs
+                function createChair(x, z, rotation) {
+                    const chairGroup = new THREE.Group();
+                    chairGroup.position.set(x, 0, z);
+                    chairGroup.rotation.y = rotation;
+                    
+                    // Seat
+                    const seat = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.6, 0.1, 0.6),
+                        materials.woodMedium
+                    );
+                    seat.position.y = 0.45;
+                    seat.castShadow = true;
+                    chairGroup.add(seat);
+                    
+                    // Backrest
+                    const back = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.6, 0.5, 0.1),
+                        materials.woodDark
+                    );
+                    back.position.set(0, 0.7, -0.25);
+                    back.castShadow = true;
+                    chairGroup.add(back);
+                    
+                    // Legs
+                    for (let i = -1; i <= 1; i += 2) {
+                        for (let j = -1; j <= 1; j += 2) {
+                            const leg = new THREE.Mesh(
+                                new THREE.CylinderGeometry(0.04, 0.04, 0.45),
+                                materials.woodDark
+                            );
+                            leg.position.set(i * 0.25, 0.225, j * 0.25);
+                            leg.castShadow = true;
+                            chairGroup.add(leg);
+                        }
+                    }
+                    
+                    return chairGroup;
+                }
+                
+                houseGroup.add(createChair(-2, -3, 0));  // Front
+                houseGroup.add(createChair(-2, -1, Math.PI));  // Back
+                houseGroup.add(createChair(-3, -2, Math.PI/2));  // Left
+                houseGroup.add(createChair(-1, -2, -Math.PI/2));  // Right
+                
+                // Bed
+                const smallBedFrame = new THREE.Mesh(
+                    new THREE.BoxGeometry(2, 0.3, 3),
+                    materials.woodMedium
+                );
+                smallBedFrame.position.set(3, 0.15, -2);
+                smallBedFrame.castShadow = true;
+                houseGroup.add(smallBedFrame);
+                
+                // Mattress
+                const smallMattress = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.8, 0.3, 2.8),
+                    materials.fabric
+                );
+                smallMattress.position.set(3, 0.45, -2);
+                smallMattress.castShadow = true;
+                houseGroup.add(smallMattress);
+                
+                // Pillow
+                const pillow = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.6, 0.2, 0.6),
+                    materials.fabric
+                );
+                pillow.position.set(3, 0.7, -3.1);
+                pillow.castShadow = true;
+                houseGroup.add(pillow);
+                
+                // Blanket
+                const smallBlanket = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.8, 0.1, 1.4),
+                    materials.fabric
+                );
+                smallBlanket.position.set(3, 0.65, -1.4);
+                smallBlanket.castShadow = true;
+                houseGroup.add(smallBlanket);
+                
+                // Bookshelf
+                const bookshelf = new THREE.Group();
+                bookshelf.position.set(3, 0, -houseDimensions.length / 2 + 0.6);
+                
+                // Bookshelf frame
+                const shelfFrame = new THREE.Mesh(
+                    new THREE.BoxGeometry(2, 2.5, 0.5),
+                    materials.woodDark
+                );
+                bookshelf.add(shelfFrame);
+                
+                // Bookshelf back
+                const shelfBack = new THREE.Mesh(
+                    new THREE.BoxGeometry(2, 2.5, 0.05),
+                    materials.woodDark
+                );
+                shelfBack.position.z = -0.225;
+                bookshelf.add(shelfBack);
+                
+                // Bookshelf sides
+                const leftSide = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.05, 2.5, 0.5),
+                    materials.woodDark
+                );
+                leftSide.position.x = -0.975;
+                bookshelf.add(leftSide);
+                
+                const rightSide = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.05, 2.5, 0.5),
+                    materials.woodDark
+                );
+                rightSide.position.x = 0.975;
+                bookshelf.add(rightSide);
+                
+                // Bookshelf shelves
+                for (let i = 0; i < 5; i++) {
+                    const shelf = new THREE.Mesh(
+                        new THREE.BoxGeometry(2, 0.05, 0.5),
+                        materials.woodDark
+                    );
+                    shelf.position.y = -1.25 + i * 0.625;
+                    bookshelf.add(shelf);
+                    
+                    // Add books on shelves
+                    if (i > 0) {
+                        const numBooks = Math.floor(Math.random() * 5) + 3;
+                        const shelfWidth = 1.9;
+                        const bookWidth = shelfWidth / numBooks;
+                        
+                        for (let j = 0; j < numBooks; j++) {
+                            if (Math.random() > 0.25) { // Some gaps in the shelves
+                                const bookHeight = 0.3 + Math.random() * 0.2;
+                                const book = new THREE.Mesh(
+                                    new THREE.BoxGeometry(bookWidth * 0.8, bookHeight, 0.2),
+                                    new THREE.MeshStandardMaterial({ 
+                                        color: new THREE.Color(
+                                            Math.random() * 0.8, 
+                                            Math.random() * 0.8, 
+                                            Math.random() * 0.8
+                                        ) 
+                                    })
+                                );
+                                book.position.set(
+                                    -0.95 + j * bookWidth + bookWidth / 2,
+                                    -1.25 + i * 0.625 + bookHeight / 2 + 0.025,
+                                    -0.1
+                                );
+                                book.castShadow = true;
+                                bookshelf.add(book);
+                            }
+                        }
+                    }
+                }
+                
+                houseGroup.add(bookshelf);
+                
+                // Add interior lighting
+                const pointLight = new THREE.PointLight(0xffbb77, 0.8, 15);
+                pointLight.position.set(0, houseDimensions.height - 0.5, 0);
+                pointLight.castShadow = true;
+                pointLight.shadow.mapSize.width = 1024;
+                pointLight.shadow.mapSize.height = 1024;
+                houseGroup.add(pointLight);
+                
+                // Add light "fixtures"
+                const lightFixture = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16),
+                    new THREE.MeshStandardMaterial({ color: 0xffcc88, emissive: 0xffcc88, emissiveIntensity: 0.75 })
+                );
+                lightFixture.position.copy(pointLight.position);
+                houseGroup.add(lightFixture);
+                
+                // Position the player inside the house
+                const player = createLowPolyCharacter();
+                player.position.set(0, 1, 25); // Near the front door, inside the house
+                scene.add(player);
+                
+                // Create outside environment
+                createOutsideEnvironment();
+                
+                // Function to create the outside dystopian environment
+                function createOutsideEnvironment() {
+                    // Create outside group
+                    const outsideGroup = new THREE.Group();
+                    outsideGroup.name = 'outsideGroup';
+                    scene.add(outsideGroup);
+                    
+                    // Add atmospheric lighting for the outside
+                    const moonLight = new THREE.DirectionalLight(0x334455, 0.5);
+                    moonLight.position.set(-50, 80, -30);
+                    moonLight.castShadow = true;
+                    moonLight.shadow.mapSize.width = 2048;
+                    moonLight.shadow.mapSize.height = 2048;
+                    moonLight.shadow.camera.near = 1;
+                    moonLight.shadow.camera.far = 300;
+                    moonLight.shadow.camera.left = -100;
+                    moonLight.shadow.camera.right = 100;
+                    moonLight.shadow.camera.top = 100;
+                    moonLight.shadow.camera.bottom = -100;
+                    scene.add(moonLight);
+                    
+                    // Add some eerie flickering lights in the distance
+                    for (let i = 0; i < 8; i++) {
+                        const flickerLight = new THREE.PointLight(
+                            // Random colors between orange/red (fire-like) and cold blue
+                            Math.random() > 0.6 ? 0xff3300 : 0x0066aa,
+                            0.8,
+                            150
+                        );
+                        
+                        // Position lights in the far distance
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = 100 + Math.random() * 100;
+                        flickerLight.position.set(
+                            Math.sin(angle) * distance,
+                            2 + Math.random() * 10,
+                            Math.cos(angle) * distance
+                        );
+                        
+                        // Create flickering animation
+                        const flickerSpeed = 0.05 + Math.random() * 0.2;
+                        const flickerIntensity = 0.2 + Math.random() * 0.8;
+                        const baseIntensity = flickerLight.intensity;
+                        
+                        // Store animation data with the light
+                        flickerLight.userData = {
+                            flickerSpeed,
+                            flickerIntensity,
+                            baseIntensity,
+                            timeOffset: Math.random() * 1000
+                        };
+                        
+                        scene.add(flickerLight);
+                        
+                        // Add to list of lights to animate
+                        if (!window.flickeringLights) window.flickeringLights = [];
+                        window.flickeringLights.push(flickerLight);
+                    }
+                    
+                    // Materials for outside elements
+                    const materials = {
+                        dirtyPath: new THREE.MeshStandardMaterial({
+                            color: 0x333333,
+                            roughness: 0.9,
+                            metalness: 0.1
+                        }),
+                        deadGrass: new THREE.MeshStandardMaterial({
+                            color: 0x2a2a1a,
+                            roughness: 0.95,
+                            metalness: 0
+                        }),
+                        metal: new THREE.MeshStandardMaterial({
+                            color: 0x665544,
+                            roughness: 0.7,
+                            metalness: 0.6
+                        }),
+                        rustyMetal: new THREE.MeshStandardMaterial({
+                            color: 0x554433,
+                            roughness: 0.8,
+                            metalness: 0.4
+                        }),
+                        deadWood: new THREE.MeshStandardMaterial({
+                            color: 0x443322,
+                            roughness: 0.9,
+                            metalness: 0.1
+                        }),
+                        glass: new THREE.MeshStandardMaterial({
+                            color: 0xaaaaaa,
+                            roughness: 0.2,
+                            metalness: 0.8,
+                            transparent: true,
+                            opacity: 0.3
+                        }),
+                        brokenGlass: new THREE.MeshStandardMaterial({
+                            color: 0x777777,
+                            roughness: 0.5,
+                            metalness: 0.5,
+                            transparent: true,
+                            opacity: 0.2
+                        })
+                    };
+                    
+                    // Create large ground plane
+                    const groundSize = 500;
+                    const ground = new THREE.Mesh(
+                        new THREE.PlaneGeometry(groundSize, groundSize),
+                        materials.deadGrass
+                    );
+                    ground.rotation.x = -Math.PI / 2;
+                    ground.position.y = -0.1;
+                    ground.receiveShadow = true;
+                    outsideGroup.add(ground);
+                    
+                    // Create path leading to the house
+                    const pathWidth = 5;
+                    const pathLength = 200;
+                    const path = new THREE.Mesh(
+                        new THREE.PlaneGeometry(pathWidth, pathLength),
+                        materials.dirtyPath
+                    );
+                    path.rotation.x = -Math.PI / 2;
+                    path.position.set(0, 0.01, pathLength/2 - 20);
+                    path.receiveShadow = true;
+                    outsideGroup.add(path);
+                    
+                    // Add cracks and details to the path using small meshes
+                    for (let i = 0; i < 40; i++) {
+                        const crackSize = Math.random() * 1.5 + 0.5;
+                        const crack = new THREE.Mesh(
+                            new THREE.PlaneGeometry(crackSize, crackSize),
+                            new THREE.MeshStandardMaterial({
+                                color: 0x222222,
+                                roughness: 1.0,
+                                metalness: 0.0
+                            })
+                        );
+                        crack.rotation.x = -Math.PI / 2;
+                        crack.position.set(
+                            (Math.random() - 0.5) * pathWidth * 0.8,
+                            0.02,
+                            (Math.random() * pathLength) - 20
+                        );
+                        crack.receiveShadow = true;
+                        outsideGroup.add(crack);
+                    }
+                    
+                    // Add street lights along the path (broken/shattered)
+                    const streetLightCount = 20;
+                    const streetLightSpacing = 15;
+                    
+                    for (let i = 0; i < streetLightCount; i++) {
+                        // Randomly choose sides of the path instead of alternating
+                        const side = Math.random() < 0.5 ? 1 : -1;
+                        
+                        // Create street light post and add tilt for damaged effect
+                        const tiltAngle = (Math.random() - 0.5) * 0.5;
+                        const postHeight = 5 + Math.random() * 2;
+                        
+                        const post = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.2, 0.3, postHeight, 8),
+                            materials.rustyMetal
+                        );
+                        
+                        // Calculate position, ensuring z > 25 (outside the house)
+                        const zPosition = Math.max(25, i * streetLightSpacing - 10);
+                        
+                        // Position with variation and tilt
+                        post.position.set(
+                            side * (pathWidth/2 + 1 + Math.random() * 3),
+                            postHeight/2,
+                            zPosition + (Math.random() - 0.5) * streetLightSpacing * 0.5
+                        );
+                        
+                        // Apply tilt
+                        post.rotation.z = tiltAngle;
+                        if (Math.random() < 0.2) {
+                            // Some posts are severely tilted
+                            post.rotation.z = (Math.random() - 0.5) * 1.5;
+                        }
+                        
+                        post.castShadow = true;
+                        post.receiveShadow = true;
+                        outsideGroup.add(post);
+                        
+                        // Lamp head with broken glass
+                        if (Math.random() > 0.3) { // Some lights are completely missing
+                            const lampHead = new THREE.Group();
+                            
+                            // Lamp housing
+                            const housing = new THREE.Mesh(
+                                new THREE.BoxGeometry(0.8, 0.5, 1.2),
+                                materials.rustyMetal
+                            );
+                            
+                            // Some lamp heads are damaged/dented
+                            if (Math.random() > 0.5) {
+                                housing.scale.set(
+                                    1.0,
+                                    1.0 - Math.random() * 0.4,
+                                    1.0 - Math.random() * 0.3
+                                );
+                            }
+                            
+                            lampHead.add(housing);
+                            
+                            // Broken glass
+                            if (Math.random() > 0.4) { // Some have no glass left
+                                const glass = new THREE.Mesh(
+                                    new THREE.BoxGeometry(0.7, 0.4, 1.1),
+                                    Math.random() > 0.5 ? materials.brokenGlass : materials.glass
+                                );
+                                glass.position.y = -0.05;
+                                lampHead.add(glass);
+                                
+                                // Add a dim light to some working lamps
+                                if (Math.random() < 0.2) {
+                                    const light = new THREE.PointLight(0xaaaaaa, 0.5, 10);
+                                    light.position.y = -0.2;
+                                    lampHead.add(light);
+                                }
+                            }
+                            
+                            // Attach lamp to post
+                            lampHead.position.set(0, postHeight, 0);
+                            
+                            // Random rotations for damaged/hanging lamps
+                            if (Math.random() > 0.3) {
+                                lampHead.rotation.x = (Math.random() - 0.5) * 0.6;
+                                lampHead.rotation.z = (Math.random() - 0.5) * 0.4;
+                            }
+                            
+                            post.add(lampHead);
+                        }
+                    }
+                    
+                    // Add dead trees and plants
+                    for (let i = 0; i < 80; i++) {
+                        const treeGroup = new THREE.Group();
+                        
+                        // Distance from path
+                        const distFromPath = 3 + Math.random() * 40;
+                        const side = Math.random() > 0.5 ? 1 : -1;
+                        
+                        // Tree trunk
+                        const trunkHeight = 4 + Math.random() * 10;
+                        const trunk = new THREE.Mesh(
+                            new THREE.CylinderGeometry(
+                                0.3 + Math.random() * 0.5,
+                                0.5 + Math.random() * 0.7,
+                                trunkHeight,
+                                8
+                            ),
+                            materials.deadWood
+                        );
+                        trunk.position.y = trunkHeight / 2;
+                        trunk.castShadow = true;
+                        trunk.receiveShadow = true;
+                        trunk.userData.collidable = true; // Mark as collidable
+                        
+                        // Add tilt for a creepy effect
+                        trunk.rotation.z = (Math.random() - 0.5) * 0.4;
+                        trunk.rotation.x = (Math.random() - 0.5) * 0.2;
+                        
+                        treeGroup.add(trunk);
+                        
+                        // Only larger trees get branches
+                        if (trunkHeight > 7) {
+                            // Add some twisted branches
+                            const branchCount = Math.floor(Math.random() * 5) + 2;
+                            
+                            for (let j = 0; j < branchCount; j++) {
+                                const branchLength = 1 + Math.random() * 4;
+                                const branch = new THREE.Mesh(
+                                    new THREE.CylinderGeometry(
+                                        0.15,
+                                        0.3,
+                                        branchLength,
+                                        6
+                                    ),
+                                    materials.deadWood
+                                );
+                                
+                                // Position branch
+                                const branchHeight = (Math.random() * 0.6 + 0.3) * trunkHeight;
+                                branch.position.y = branchHeight - trunk.position.y;
+                                
+                                // Rotate to horizontal-ish position
+                                branch.rotation.z = (Math.random() - 0.5) * Math.PI;
+                                branch.rotation.y = Math.random() * Math.PI * 2;
+                                
+                                // Shift branch end position
+                                branch.position.x = Math.sin(branch.rotation.z) * branchLength/2;
+                                branch.position.y += Math.cos(branch.rotation.z) * branchLength/2;
+                                
+                                branch.castShadow = true;
+                                trunk.add(branch);
+                            }
+                        }
+                        
+                        // Position the tree - ENSURE TREES ARE OUTSIDE THE HOUSE (z > 25)
+                        // Generate a z position until we get one that's outside the house
+                        let zPos;
+                        do {
+                            zPos = Math.random() * pathLength * 1.2 - 20;
+                        } while (zPos < 25); // Keep regenerating until we get z > 25
+                        
+                        treeGroup.position.set(
+                            side * (pathWidth/2 + distFromPath),
+                            0,
+                            zPos
+                        );
+                        
+                        outsideGroup.add(treeGroup);
+                    }
+                    
+                    // Add dead bushes and smaller vegetation
+                    for (let i = 0; i < 150; i++) {
+                        // Small dead bush
+                        const bushSize = 0.5 + Math.random() * 1.5;
+                        const bushHeight = 0.3 + Math.random() * 1.2;
+                        
+                        // Use an irregular shape for bushes
+                        const bushGeometry = new THREE.SphereGeometry(
+                            bushSize,
+                            Math.floor(3 + Math.random() * 4),
+                            Math.floor(2 + Math.random() * 3)
+                        );
+                        
+                        // Deform the bush mesh to look dead and irregular
+                        const bushVertices = bushGeometry.attributes.position;
+                        for (let j = 0; j < bushVertices.count; j++) {
+                            const x = bushVertices.getX(j);
+                            const y = bushVertices.getY(j);
+                            const z = bushVertices.getZ(j);
+                            
+                            const distort = (Math.random() - 0.5) * 0.4;
+                            
+                            bushVertices.setX(j, x * (1 + distort));
+                            bushVertices.setZ(j, z * (1 + distort));
+                            bushVertices.setY(j, y * (1 + (Math.random() - 0.2) * 0.5));
+                        }
+                        
+                        // Create a variation of the dead grass material for bushes
+                        const bushColor = new THREE.Color(0x2a2a1a);
+                        bushColor.r += (Math.random() - 0.5) * 0.1;
+                        bushColor.g += (Math.random() - 0.5) * 0.1;
+                        
+                        const bushMaterial = new THREE.MeshStandardMaterial({
+                            color: bushColor,
+                            roughness: 0.9,
+                            metalness: 0.1
+                        });
+                        
+                        const bush = new THREE.Mesh(bushGeometry, bushMaterial);
+                        
+                        // Position with large spread - ENSURE BUSHES ARE OUTSIDE THE HOUSE (z > 25)
+                        const distFromPath = 3 + Math.random() * 100;
+                        const side = Math.random() > 0.5 ? 1 : -1;
+                        
+                        // Generate a z position until we get one that's outside the house
+                        let zPos;
+                        do {
+                            zPos = (Math.random() * pathLength * 2) - pathLength/2;
+                        } while (zPos < 25); // Keep regenerating until we get z > 25
+                        
+                        bush.position.set(
+                            side * (pathWidth/2 + distFromPath),
+                            bushHeight/2,
+                            zPos
+                        );
+                        
+                        bush.castShadow = true;
+                        bush.receiveShadow = true;
+                        outsideGroup.add(bush);
+                    }
+                    
+                    // Add some scattered debris and trash
+                    const debrisTypes = [
+                        // Metal scraps
+                        {
+                            geometry: new THREE.BoxGeometry(
+                                Math.random() * 2 + 0.5,
+                                Math.random() * 0.5 + 0.1,
+                                Math.random() * 2 + 0.5
+                            ),
+                            material: materials.rustyMetal,
+                            quantity: 30
+                        },
+                        // Concrete chunks
+                        {
+                            geometry: new THREE.DodecahedronGeometry(
+                                Math.random() * 1.5 + 0.5,
+                                0
+                            ),
+                            material: new THREE.MeshStandardMaterial({
+                                color: 0x444444,
+                                roughness: 0.9,
+                                metalness: 0.1
+                            }),
+                            quantity: 25
+                        },
+                        // Broken wooden planks
+                        {
+                            geometry: new THREE.BoxGeometry(
+                                Math.random() * 3 + 1,
+                                Math.random() * 0.3 + 0.1,
+                                Math.random() * 0.5 + 0.2
+                            ),
+                            material: materials.deadWood,
+                            quantity: 20
+                        }
+                    ];
+                    
+                    // Add the debris
+                    debrisTypes.forEach(debrisType => {
+                        for (let i = 0; i < debrisType.quantity; i++) {
+                            const geometry = debrisType.geometry.clone();
+                            
+                            // Randomize geometry scale slightly
+                            const scale = 0.5 + Math.random() * 1.5;
+                            
+                            const debris = new THREE.Mesh(
+                                geometry,
+                                debrisType.material
+                            );
+                            
+                            // Position within reasonable distance from path
+                            const distFromPath = Math.random() * 30;
+                            const side = Math.random() > 0.5 ? 1 : -1;
+                            
+                            // Generate a z position until we get one that's outside the house (z > 25)
+                            let zPos;
+                            do {
+                                zPos = (Math.random() * pathLength * 1.5) - 30;
+                            } while (zPos < 25); // Keep regenerating until we get z > 25
+                            
+                            debris.position.set(
+                                side * (pathWidth/2 + distFromPath),
+                                0.1 + Math.random() * 0.3,
+                                zPos
+                            );
+                            
+                            // Random rotation for natural look
+                            debris.rotation.x = Math.random() * Math.PI;
+                            debris.rotation.y = Math.random() * Math.PI;
+                            debris.rotation.z = Math.random() * Math.PI;
+                            
+                            debris.scale.set(scale, scale, scale);
+                            debris.castShadow = true;
+                            debris.receiveShadow = true;
+                            outsideGroup.add(debris);
+                        }
+                    });
+                    
+                    // Replace animated fog particles with a simple height fog effect
+                    // This creates a more realistic atmospheric effect that doesn't look choppy
+                    
+                    // Add volumetric fog effect for atmosphere
+                    function addAtmosphericFog(outsideGroup) {
+                        const fogLight = new THREE.PointLight(0xccccff, 0.8, 120);
+                        fogLight.position.set(0, 50, 50);
+                        outsideGroup.add(fogLight);
+                        
+                        // Add volumetric haze for atmosphere
+                        const hazeLight = new THREE.DirectionalLight(0x555577, 0.5);
+                        hazeLight.position.set(-1, 1, 1);
+                        hazeLight.lookAt(0, 0, 0);
+                        outsideGroup.add(hazeLight);
+                    }
+                    
+                    // Add tall glowing light rods along the path
+                    function addGlowingLightRods(outsideGroup) {
+                        // Create a material for the rod bodies
+                        const rodMaterial = new THREE.MeshStandardMaterial({
+                            color: 0x444444,
+                            roughness: 0.7,
+                            metalness: 0.5
+                        });
+                        
+                        // Create a material for the glowing tips
+                        const glowMaterial = new THREE.MeshStandardMaterial({
+                            color: 0xffcc00,
+                            emissive: 0xffcc00,
+                            emissiveIntensity: 1.00,
+                            roughness: 0.3,
+                            metalness: 0.8
+                        });
+                        
+                        // Add several light rods along the path
+                        const rodCount = 8;
+                        const pathWidth = 5;
+                        
+                        for (let i = 0; i < rodCount; i++) {
+                            // Create a group for the rod
+                            const rodGroup = new THREE.Group();
+                            
+                            // Randomly choose sides of the path instead of alternating
+                            const side = Math.random() < 0.5 ? 1 : -1;
+                            
+                            // Rod body
+                            const rodHeight = 8 + Math.random() * 4; // Tall rods
+                            const rod = new THREE.Mesh(
+                                new THREE.CylinderGeometry(0.15, 0.2, rodHeight, 8),
+                                rodMaterial
+                            );
+                            rod.position.y = rodHeight / 2;
+                            rod.castShadow = true;
+                            rodGroup.add(rod);
+                            
+                            // Add horizontal arm at the top - now facing inward toward the path
+                            const armLength = 1.5 + Math.random() * 0.5;
+                            const arm = new THREE.Mesh(
+                                new THREE.CylinderGeometry(0.08, 0.08, armLength, 8),
+                                rodMaterial
+                            );
+                            // Rotate to horizontal position
+                            arm.rotation.z = Math.PI / 2;
+                            // Position at the top of the rod, extend inward toward the path (negative side value)
+                            arm.position.set(armLength/2 * -side, rodHeight, 0);
+                            rodGroup.add(arm);
+                            
+                            // Add thin hanging wire
+                            const wireHeight = 0.8 + Math.random() * 0.4;
+                            const wire = new THREE.Mesh(
+                                new THREE.CylinderGeometry(0.02, 0.02, wireHeight, 8),
+                                rodMaterial
+                            );
+                            wire.position.set(armLength * -side, rodHeight - wireHeight/2, 0);
+                            rodGroup.add(wire);
+                            
+                            // Glowing lamp hanging from the arm
+                            const glowLamp = new THREE.Mesh(
+                                new THREE.SphereGeometry(0.3, 8, 8),
+                                glowMaterial
+                            );
+                            glowLamp.position.set(armLength * -side, rodHeight - wireHeight, 0);
+                            rodGroup.add(glowLamp);
+                            
+                            // Add a point light at the lamp
+                            const light = new THREE.PointLight(0xffcc00, 1.5, 20);
+                            light.position.copy(glowLamp.position);
+                            
+                            // Add slight flicker to some lights
+                            if (Math.random() > 0.3) {
+                                light.userData = {
+                                    flickerSpeed: 0.02 + Math.random() * 0.05,
+                                    flickerIntensity: 0.2,
+                                    baseIntensity: light.intensity,
+                                    timeOffset: Math.random() * 1000
+                                };
+                                
+                                if (!window.flickeringLights) window.flickeringLights = [];
+                                window.flickeringLights.push(light);
+                            }
+                            
+                            rodGroup.add(light);
+                            
+                            // Position along the path, ensuring z > 25
+                            // Choose a position further along the path (z > 25)
+                            const zPosition = 30 + Math.random() * 150;
+                            
+                            // Position with some randomness
+                            rodGroup.position.set(
+                                side * (pathWidth/2 + 2 + Math.random() * 3),
+                                0,
+                                zPosition + (Math.random() - 0.5) * streetLightSpacing * 0.5
+                            );
+                            
+                            // Add slight tilt for visual interest
+                            rodGroup.rotation.z = (Math.random() - 0.5) * 0.2;
+                            
+                            outsideGroup.add(rodGroup);
+                        }
+                    }
+                    
+                    addAtmosphericFog(outsideGroup);
+                    
+                    // Function to add dystopian buildings to the outsideGroup
+                    function addDystopianBuildings(outsideGroup) {
+                        // Materials for buildings
+                        const buildingMaterials = [
+                            // Concrete/Stone buildings
+                            new THREE.MeshStandardMaterial({
+                                color: 0x333333, // Dark gray
+                                roughness: 0.9,
+                                metalness: 0.1
+                            }),
+                            new THREE.MeshStandardMaterial({
+                                color: 0x555555, // Medium gray
+                                roughness: 0.8,
+                                metalness: 0.2
+                            }),
+                            new THREE.MeshStandardMaterial({
+                                color: 0x222222, // Very dark gray
+                                roughness: 0.7,
+                                metalness: 0.3
+                            }),
+                            // Industrial/Metal buildings
+                            new THREE.MeshStandardMaterial({
+                                color: 0x444433, // Dark greenish gray
+                                roughness: 0.6,
+                                metalness: 0.4
+                            }),
+                            new THREE.MeshStandardMaterial({
+                                color: 0x554433, // Dark brownish gray
+                                roughness: 0.7,
+                                metalness: 0.3
+                            })
+                        ];
+                    
+                        // Window material (dark with slight glow)
+                        const windowMaterial = new THREE.MeshStandardMaterial({
+                            color: 0x111111,
+                            emissive: 0x222233,
+                            emissiveIntensity: 0.30,
+                            roughness: 0.5,
+                            metalness: 0.8
+                        });
+                    
+                        // Create buildings on both sides of the path
+                        const buildingSides = [-1, 1]; // Left and right side
+                        
+                        // For each side of the path
+                        buildingSides.forEach(side => {
+                            // Base distance from path center
+                            const baseDistance = 50; // 50 units away from path center
+                            
+                            // Create a dense area of buildings
+                            for (let row = 0; row < 4; row++) {
+                                // Row offset (further back for each row)
+                                const rowOffset = row * 25;
+                                
+                                // Number of buildings in this row
+                                const buildingsInRow = 6 + Math.floor(Math.random() * 3);
+                                
+                                for (let i = 0; i < buildingsInRow; i++) {
+                                    // Vary the building dimensions
+                                    const buildingWidth = 15 + Math.random() * 15;
+                                    const buildingDepth = 15 + Math.random() * 15;
+                                    const buildingHeight = 20 + Math.random() * 60; // Very different heights
+                                    
+                                    // Determine the building position
+                                    // Buildings should be packed somewhat randomly but not overlap too much
+                                    const xPosition = side * (baseDistance + rowOffset + (Math.random() - 0.5) * 10);
+                                    const zPosition = 25 + i * buildingDepth * 1.2 + (Math.random() - 0.5) * 10;
+                                    
+                                    // Create the building
+                                    const building = new THREE.Group();
+                                    
+                                    // Main building structure
+                                    const structure = new THREE.Mesh(
+                                        new THREE.BoxGeometry(buildingWidth, buildingHeight, buildingDepth),
+                                        buildingMaterials[Math.floor(Math.random() * buildingMaterials.length)]
+                                    );
+                                    structure.position.set(0, buildingHeight/2, 0);
+                                    structure.castShadow = true;
+                                    structure.receiveShadow = true;
+                                    building.add(structure);
+                                    
+                                    // Add windows (darker rectangles) on some buildings
+                                    if (Math.random() > 0.3) {
+                                        const windowRows = Math.floor(buildingHeight / 5);
+                                        const windowCols = Math.floor(buildingWidth / 3);
+                                        
+                                        for (let row = 0; row < windowRows; row++) {
+                                            // Skip some rows randomly
+                                            if (Math.random() < 0.2) continue;
+                                            
+                                            for (let col = 0; col < windowCols; col++) {
+                                                // Skip some windows randomly for variation
+                                                if (Math.random() < 0.3) continue;
+                                                
+                                                // Window dimensions
+                                                const windowWidth = 1.5;
+                                                const windowHeight = 2;
+                                                
+                                                // Window position
+                                                const windowX = -buildingWidth/2 + 2 + col * 3;
+                                                const windowY = row * 5 + 3;
+                                                const windowZ = buildingDepth/2 + 0.05; // Slightly outside the building
+                                                
+                                                // Create window
+                                                const window = new THREE.Mesh(
+                                                    new THREE.PlaneGeometry(windowWidth, windowHeight),
+                                                    // Randomly choose if the window is lit
+                                                    Math.random() < 0.2 ? 
+                                                        new THREE.MeshStandardMaterial({
+                                                            color: 0x111111,
+                                                            emissive: 0xffffaa,
+                                                            emissiveIntensity: 0.45 + Math.random() * 0.3,
+                                                            roughness: 0.5,
+                                                            metalness: 0.8
+                                                        }) : windowMaterial
+                                                );
+                                                window.position.set(windowX, windowY, windowZ);
+                                                window.rotation.y = Math.PI;
+                                                building.add(window);
+                                                
+                                                // Add windows on other sides too
+                                                const backWindow = window.clone();
+                                                backWindow.position.z = -windowZ;
+                                                backWindow.rotation.y = 0;
+                                                building.add(backWindow);
+                                                
+                                                // Side windows (only on some buildings)
+                                                if (Math.random() < 0.5 && col === 0) {
+                                                    const sideWindow = window.clone();
+                                                    sideWindow.position.set(buildingWidth/2 + 0.05, windowY, windowX * 2);
+                                                    sideWindow.rotation.y = -Math.PI/2;
+                                                    building.add(sideWindow);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Add some rooftop features to some buildings
+                                    if (Math.random() > 0.6) {
+                                        // Water tower or AC unit or antenna
+                                        if (Math.random() > 0.5) {
+                                            // Water tower
+                                            const towerBase = new THREE.Mesh(
+                                                new THREE.BoxGeometry(buildingWidth * 0.3, buildingHeight * 0.05, buildingDepth * 0.3),
+                                                buildingMaterials[2] // Dark material
+                                            );
+                                            towerBase.position.set(0, buildingHeight + 1, 0);
+                                            building.add(towerBase);
+                                            
+                                            const waterTank = new THREE.Mesh(
+                                                new THREE.CylinderGeometry(buildingWidth * 0.1, buildingWidth * 0.1, buildingHeight * 0.1, 8),
+                                                buildingMaterials[3] // Metal material
+                                            );
+                                            waterTank.position.set(0, buildingHeight + 1 + buildingHeight * 0.075, 0);
+                                            building.add(waterTank);
+                                        } else {
+                                            // Antenna or satellite dish
+                                            const antenna = new THREE.Mesh(
+                                                new THREE.CylinderGeometry(0.1, 0.2, buildingHeight * 0.15, 4),
+                                                buildingMaterials[3] // Metal material
+                                            );
+                                            antenna.position.set(buildingWidth * 0.3, buildingHeight + buildingHeight * 0.075, buildingDepth * 0.3);
+                                            building.add(antenna);
+                                        }
+                                    }
+                                    
+                                    // Position the entire building
+                                    building.position.set(xPosition, 0, zPosition);
+                                    
+                                    // Slightly rotate some buildings for more natural look
+                                    if (Math.random() > 0.7) {
+                                        building.rotation.y = (Math.random() - 0.5) * 0.2;
+                                    }
+                                    
+                                    outsideGroup.add(building);
+                                }
+                            }
+                        });
+                    }
+                    
+                    // Add the glowing light rods
+                    addGlowingLightRods(outsideGroup);
+
+                    // Add the dystopian buildings
+                    addDystopianBuildings(outsideGroup);
+                }
+                
+                // Remove this line from the original code since we've already positioned the player
+                // scene.add(player);
+                
+                // First-person controls variables
+                let moveForward = false;
+                let moveBackward = false;
+                let moveLeft = false;
+                let moveRight = false;
+                let canJump = true;
+                
+                // Lock and hide cursor
+                const blocker = document.createElement('div');
+                blocker.id = 'blocker';
+                blocker.style.position = 'absolute';
+                blocker.style.width = '100%';
+                blocker.style.height = '100%';
+                blocker.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                blocker.style.display = 'flex';
+                blocker.style.justifyContent = 'center';
+                blocker.style.alignItems = 'center';
+                blocker.style.zIndex = '999';
+                blocker.innerHTML = '<div style="color:white;font-size:24px;">Click to play</div>';
+                document.body.appendChild(blocker);
+                
+                setupControls();
+                
+                function createLowPolyCharacter() {
+                    // Create a group for the character
+                    const character = new THREE.Group();
+                    
+                    // Create body parts with more rounded geometric shapes
+                    
+                    // Body - torso with curved shape
+                    const torsoGeom = new THREE.CylinderGeometry(0.6, 0.5, 1.7, 8);
+                    const torsoMat = new THREE.MeshStandardMaterial({ color: 0x2255aa, roughness: 0.7 });
+                    const torso = new THREE.Mesh(torsoGeom, torsoMat);
+                    torso.position.y = 1.2;
+                    torso.castShadow = true;
+                    character.add(torso);
+                    character.torso = torso; // Reference for animations
+                    
+                    // Add shoulders - wider at the top
+                    const shouldersGeom = new THREE.CylinderGeometry(0.7, 0.6, 0.4, 8);
+                    const shouldersMat = new THREE.MeshStandardMaterial({ color: 0x2255aa, roughness: 0.7 });
+                    const shoulders = new THREE.Mesh(shouldersGeom, shouldersMat);
+                    shoulders.position.y = 2.0;
+                    shoulders.castShadow = true;
+                    character.add(shoulders);
+                    character.shoulders = shoulders; // Reference for animations
+                    
+                    // Hip section
+                    const hipGeom = new THREE.CylinderGeometry(0.5, 0.55, 0.3, 8);
+                    const hipMat = new THREE.MeshStandardMaterial({ color: 0x222266, roughness: 0.7 });
+                    const hip = new THREE.Mesh(hipGeom, hipMat);
+                    hip.position.y = 0.5;
+                    hip.castShadow = true;
+                    character.add(hip);
+                    
+                    // Change the hair implementation to anchor it to the head
+                    // Create a head group to contain all head parts
+                    const headGroup = new THREE.Group();
+                    headGroup.position.y = 2.5;
+                    character.add(headGroup);
+                    character.headGroup = headGroup;
+                    
+                    // Add the head to the head group with adjusted local position - make more spherical
+                    const headGeom = new THREE.SphereGeometry(0.48, 16, 16);
+                    const headMat = new THREE.MeshStandardMaterial({ color: 0xeebb99, roughness: 0.5 });
+                    const head = new THREE.Mesh(headGeom, headMat);
+                    head.position.y = 0; // Local position relative to headGroup
+                    head.scale.set(1, 1.02, 0.95); // Very slight adjustments for natural look
+                    head.castShadow = true;
+                    headGroup.add(head);
+                    character.head = head; // Reference for animations
+                    
+                    // Neck - positioned relative to character, not in head group
+                    const neckGeom = new THREE.CylinderGeometry(0.25, 0.3, 0.3, 8);
+                    const neckMat = new THREE.MeshStandardMaterial({ color: 0xdda688, roughness: 0.5 });
+                    const neck = new THREE.Mesh(neckGeom, neckMat);
+                    neck.position.y = 2.2;
+                    neck.castShadow = true;
+                    character.add(neck);
+                    
+                    // Hair - more spherical shape but stopping at forehead
+                    const hairTopGeom = new THREE.SphereGeometry(0.52, 16, 16);
+                    const hairMat = new THREE.MeshStandardMaterial({ color: 0x553322, roughness: 0.9 });
+                    const hairTop = new THREE.Mesh(hairTopGeom, hairMat);
+                    hairTop.position.y = 0.15; // Slightly elevated position
+                    hairTop.position.z = -0.07; // Pull hair back from face
+                    hairTop.scale.set(1, 0.85, 0.85); // Reduced depth to prevent forward extension
+                    headGroup.add(hairTop);
+                    
+                    // Hair sides - more rounded with sphere geometry, also pulled back
+                    const hairSideGeom = new THREE.SphereGeometry(0.52, 12, 12);
+                    const hairSides = new THREE.Mesh(hairSideGeom, hairMat);
+                    hairSides.position.set(0, 0.05, -0.1); // Positioned further back
+                    hairSides.scale.set(1, 0.4, 0.7); // Reduced depth for sides
+                    headGroup.add(hairSides);
+                    
+                    // Eyes and other facial features added to the head group
+                    // Left eye white
+                    const eyeWhiteGeom = new THREE.SphereGeometry(0.1, 10, 10);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dystopian Escape</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Updated to ES modules version of Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #eee;
+            overflow: hidden;
+        }
+        
+        #pause-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .menu-container {
+            background-color: rgba(30, 30, 40, 0.9);
+            border: 2px solid #73a1ff;
+            border-radius: 10px;
+            padding: 30px;
+            width: 350px;
+            box-shadow: 0 0 20px #73a1ff;
+            text-align: center;
+        }
+        
+        .menu-container h2 {
+            color: #73a1ff;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            text-shadow: 0 0 10px #73a1ff;
+        }
+        
+        .menu-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .menu-options button {
+            padding: 12px;
+            background-color: rgba(40, 40, 60, 0.9);
+            border: 1px solid #73a1ff;
+            color: #ccc;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+            border-radius: 5px;
+        }
+        
+        .menu-options button:hover {
+            background-color: rgba(60, 60, 100, 0.9);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(115, 161, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .menu-options button:active {
+            transform: translateY(0);
+        }
+        
+        #inventory-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 350px;
+            background-color: rgba(20, 20, 40, 0.8);
+            border: 2px solid #555;
+            border-radius: 10px;
+            display: none;
+            z-index: 100;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+        }
+
+        #inventory-title {
+            text-align: center;
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #666;
+            font-size: 18px;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px;
+            height: calc(100% - 60px);
+        }
+
+        .inventory-slot {
+            background-color: rgba(40, 40, 60, 0.7);
+            border: 1px solid #777;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .inventory-slot:hover {
+            background-color: rgba(60, 60, 90, 0.8);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(100, 100, 255, 0.5);
+        }
+
+        .inventory-slot img {
+            max-width: 80%;
+            max-height: 80%;
+            pointer-events: none;
+        }
+
+        .item-tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 10;
+        }
+
+        .inventory-slot:hover .item-tooltip {
+            opacity: 1;
+            z-index: 20;
+            bottom: -35px;
+            background-color: rgba(10, 10, 30, 0.9);
+            box-shadow: 0 0 8px rgba(100, 100, 255, 0.5);
+            color: #fff;
+            font-weight: bold;
+            border: 1px solid #555;
+        }
+
+        .item-count {
+            position: absolute;
+            bottom: 3px;
+            right: 5px;
+            font-size: 12px;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .key-tip {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 12px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading-screen">
+            <div class="loading-text">Loading Dystopian World...</div>
+        </div>
+        
+        <div id="pause-menu" style="display: none;">
+            <div class="menu-container">
+                <h2>Game Paused</h2>
+                <div class="menu-options">
+                    <button id="resume-game">Resume Game</button>
+                    <button id="restart-game">Start Over</button>
+                    <button id="return-home">Return to Home</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="info">
+            <div class="controls-info">
+                <p>WASD - Move | SPACE - Jump | MOUSE - Look | E - Inventory</p>
+            </div>
+        </div>
+        <div id="debug"></div>
+        <div id="inventory-panel">
+            <h2 id="inventory-title">Inventory</h2>
+            <div class="inventory-grid" id="inventory-grid"></div>
+            <div class="key-tip">Press E to close</div>
+        </div>
+
+        <!-- Audio elements for ambient sounds -->
+        <audio id="ambient-wind" preload="auto">
+            <source src="audio/ambient-wind.mp3" type="audio/mp3">
+        </audio>
+        
+    </div>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        
+        window.onload = function() {
+            const debugElement = document.getElementById('debug');
+            
+            try {
+                // Hide loading screen
+                document.getElementById('loading-screen').style.display = 'none';
+                
+                // Initialize audio
+                initAudioEffects();
+                
+                // Initialize event listeners for UI
+                initEventListeners();
+                
+                // Game state
+                const state = {
+                    keysPressed: {},
+                    playerVelocity: new THREE.Vector3(),
+                    playerDirection: new THREE.Vector3(),
+                    cameraOffset: new THREE.Vector3(0, 3, 7),
+                    cameraRotation: { x: 0, y: 0 },
+                    cameraMode: 'free', // Default camera mode: 'free' or 'shiftlock'
+                    rightMouseDown: false,
+                    mousePosition: { x: 0, y: 0 },
+                    onGround: true,
+                    movementSpeed: 0.3,
+                    turnSpeed: 0.03,
+                    jumpForce: 0.27,
+                    gravity: 0.0125,
+                    animationState: 'idle',
+                    timeSinceLastStep: 0,
+                    lastInputTime: 0,
+                    autoAlignDelay: 2, // Seconds to wait before auto-aligning camera
+                    movingDirection: null, // Current moving direction
+                    idleTime: 0,
+                    lastHeadMove: 0,
+                    headTargetRotation: null,
+                    headMoveDuration: 0,
+                    headMoveStart: 0,
+                    jumpPhase: null,
+                    jumpTime: 0,
+                    landingComplete: false, // Track if landing animation has completed
+                    inventory: {
+                        isOpen: false,
+                        items: [],
+                        slots: 15,
+                        slotElements: [],
+                        initialized: false
+                    },
+                    gamePaused: false, // Add pause state
                 };
                 
                 // Initialize inventory system
@@ -2492,11 +4423,6 @@ const rightMidArmGroup = new THREE.Group();
                         case 'KeyD':
                             moveRight = false;
                             break;
-                        case 'Space':
-                            // Mark that space key has been released
-                            state.spaceKeyReleased = true;
-                            state.keysPressed['Space'] = false;
-                            break;
                     }
                 });
                 
@@ -3170,14 +5096,13 @@ const rightMidArmGroup = new THREE.Group();
                             }
                         }
                         
-                        // Apply jumping - only jump if space is pressed, can jump, and space was released since last jump
-                        if (state.keysPressed['Space'] && canJump && state.spaceKeyReleased) {
+                        // Apply jumping
+                        if (state.keysPressed['Space'] && canJump) {
                             state.playerVelocity.y = state.jumpForce;
                             canJump = false;
-                            state.spaceKeyReleased = false; // Mark that space has been used for jumping
                             
-                            // Reset jump animation with correct phase
-                            state.jumpPhase = "startup";
+                            // Reset jump animation
+                            state.jumpPhase = 'start';
                             state.jumpTime = 0;
                             state.landingComplete = false;
                         }
