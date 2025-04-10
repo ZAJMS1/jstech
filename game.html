@@ -14,6 +14,19 @@
             }
         }
     </script>
+<script>
+    // Add event listeners to restart buttons to clear inventory
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.restart-game, #restart-game').forEach(button => {
+            button.addEventListener('click', function() {
+                // Clear localStorage before restarting
+                localStorage.removeItem('gameInventory');
+                localStorage.removeItem('hasBackpack');
+                console.log('Game restarting, inventory cleared');
+            });
+        });
+    });
+    </script>
     <style>
         body {
             margin: 0;
@@ -189,6 +202,19 @@
             color: #aaa;
         }
     </style>
+<script>
+    // Add event listeners to restart buttons to clear inventory
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.restart-game, #restart-game').forEach(button => {
+            button.addEventListener('click', function() {
+                // Clear localStorage before restarting
+                localStorage.removeItem('gameInventory');
+                localStorage.removeItem('hasBackpack');
+                console.log('Game restarting, inventory cleared');
+            });
+        });
+    });
+    </script>
 </head>
 <body>
     <div id="game-container">
@@ -4836,6 +4862,8 @@ const rightMidArmGroup = new THREE.Group();
                 }
                 
                 // Start the actual game
+                
+                // Start the actual game
                 function startGame(hasBackpack) {
                     // Remove choice UI
                     const choiceContainer = document.getElementById('choice-container');
@@ -4847,8 +4875,18 @@ const rightMidArmGroup = new THREE.Group();
                     gameProgress.hasBackpack = hasBackpack;
                     gameProgress.storyPhase = 'escape';
                     
-                    // Show game UI
+                    // Save backpack status to localStorage
+                    localStorage.setItem('hasBackpack', hasBackpack);
+                    
+                    // Add items to inventory based on backpack choice
                     if (window.playerInventory) {
+                        // Clear previous inventory in case of restart
+                        window.playerInventory.clearInventory();
+                        
+                        if (hasBackpack) {
+                            window.playerInventory.addItem('Crowbar', 'A sturdy metal tool that can force doors and serve as a weapon.');
+                            window.playerInventory.addItem('Sandwich', 'A homemade sandwich. Can restore energy or be shared.');
+                        }
                         window.playerInventory.showUI(hasBackpack);
                     }
                     
@@ -4884,23 +4922,34 @@ const rightMidArmGroup = new THREE.Group();
                 }
                 
                 // Initialize inventory system
+                
+                // Initialize inventory system
                 function initInventorySystem() {
+                    // Load existing inventory from localStorage if available
+                    let savedInventory = localStorage.getItem('gameInventory');
+                    let savedBackpack = localStorage.getItem('hasBackpack');
+                    
                     // Create inventory manager
                     window.playerInventory = {
-                        items: [],
+                        items: savedInventory ? JSON.parse(savedInventory) : [],
                         
                         addItem: function(name, description) {
-                            this.items.push({
-                                name: name,
-                                description: description,
-                                used: false
-                            });
-                            this.updateUI();
+                            // Check if item already exists to prevent duplicates
+                            if (!this.hasItem(name)) {
+                                this.items.push({
+                                    name: name,
+                                    description: description,
+                                    used: false
+                                });
+                                this.saveInventory();
+                                this.updateUI();
+                            }
                         },
                         
                         useItem: function(index) {
                             if (index >= 0 && index < this.items.length) {
                                 this.items[index].used = true;
+                                this.saveInventory();
                                 this.updateUI();
                                 return true;
                             }
@@ -4909,6 +4958,21 @@ const rightMidArmGroup = new THREE.Group();
                         
                         hasItem: function(name) {
                             return this.items.some(item => item.name === name && !item.used);
+                        },
+                        
+                        saveInventory: function() {
+                            // Save inventory to localStorage
+                            localStorage.setItem('gameInventory', JSON.stringify(this.items));
+                            // Save backpack status
+                            localStorage.setItem('hasBackpack', gameProgress.hasBackpack);
+                        },
+                        
+                        clearInventory: function() {
+                            // Clear inventory (for game restart)
+                            this.items = [];
+                            localStorage.removeItem('gameInventory');
+                            localStorage.removeItem('hasBackpack');
+                            this.updateUI();
                         },
                         
                         showUI: function(visible) {
@@ -4954,7 +5018,12 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Initialize empty inventory UI
                     window.playerInventory.updateUI();
-                    window.playerInventory.showUI(false); // Hide initially
+                    window.playerInventory.showUI(gameProgress.hasBackpack); // Show immediately if player has backpack
+                    
+                    // If we have a saved backpack status, apply it
+                    if (savedBackpack !== null) {
+                        gameProgress.hasBackpack = savedBackpack === 'true';
+                    }
                 }
                 
                 // Start the intro cutscene instead of immediately playing

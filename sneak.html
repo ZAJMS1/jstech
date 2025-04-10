@@ -14,6 +14,19 @@
             }
         }
     </script>
+<script>
+    // Add event listeners to restart buttons to clear inventory
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.restart-game, #restart-game').forEach(button => {
+            button.addEventListener('click', function() {
+                // Clear localStorage before restarting
+                localStorage.removeItem('gameInventory');
+                localStorage.removeItem('hasBackpack');
+                console.log('Game restarting, inventory cleared');
+            });
+        });
+    });
+    </script>
     <style>
         body {
             margin: 0;
@@ -503,9 +516,9 @@
                 renderer.shadowMap.enabled = true;
                 document.getElementById('game-container').appendChild(renderer.domElement);
                 
-                // Create a house the player can walk around in
-                const houseGroup = new THREE.Group();
-                scene.add(houseGroup);
+                // House removed
+                const houseGroup = new THREE.Group(); // Empty group as placeholder
+                // House removed
                 
                 // Materials library
                 const materials = {
@@ -585,7 +598,7 @@
                     })
                 };
                 
-                // House dimensions
+                // Placeholder for houseDimensions to prevent reference errors
                 const houseDimensions = {
                     width: 50,
                     length: 50,
@@ -593,12 +606,42 @@
                     wallThickness: 1
                 };
                 
-                // Door and window dimensions - use var to avoid redeclaration
-                var frontDoorWidth = 6; // Increased door width
-                var frontDoorHeight = 10; // Increased door height
-                var frontWallHeight = houseDimensions.height * 0.9; // 90% of house height for interior walls
+                // Door and window dimensions - placeholder to prevent reference errors
+                var frontDoorWidth = 6;
+                var frontDoorHeight = 10;
+                var frontWallHeight = houseDimensions.height * 0.9;
                 var windowWidth = 5;
                 var windowHeight = 5;
+                
+                // House removed - this is just a placeholder to prevent reference errors
+                // Placeholder functions to prevent reference errors
+                
+                // Wall section creation function placeholder
+                function createWallSection(width, height, depth, x, y, z, material) {
+                    // Return empty mesh that doesn't render
+                    const wall = new THREE.Mesh(
+                        new THREE.BoxGeometry(0, 0, 0),
+                        material
+                    );
+                    wall.position.set(x, y, z);
+                    wall.visible = false; // Make invisible
+                    return wall;
+                }
+                
+                // Window creation function placeholder
+                function createWindow(width, height, x, y, z, rotationY) {
+                    // Return empty group that doesn't render
+                    const windowGroup = new THREE.Group();
+                    windowGroup.position.set(x, y, z);
+                    windowGroup.rotation.y = rotationY || 0;
+                    windowGroup.visible = false; // Make invisible
+                    return windowGroup;
+                }
+                
+                
+                // House dimensions removed
+                
+                // Door and window dimensions removed
                 
                 // Create foundation - main floor
                 const mainFloor = new THREE.Mesh(
@@ -611,7 +654,7 @@
                 );
                 mainFloor.position.y = 0; // Position at ground level
                 mainFloor.receiveShadow = true;
-                houseGroup.add(mainFloor);
+                // House element removed
                 
                 // Create ceiling - separate from the floor
                 const ceiling = new THREE.Mesh(
@@ -624,20 +667,9 @@
                 );
                 ceiling.position.y = houseDimensions.height;
                 ceiling.receiveShadow = true;
-                houseGroup.add(ceiling);
+                // House element removed
                 
-                // Function to create wall sections
-                function createWallSection(width, height, depth, x, y, z, material) {
-                    const wall = new THREE.Mesh(
-                        new THREE.BoxGeometry(width, height, depth),
-                        material
-                    );
-                    wall.position.set(x, y, z);
-                    wall.castShadow = true;
-                    wall.receiveShadow = true;
-                    wall.userData.collidable = true; // Mark as collidable
-                    return wall;
-                }
+                // Wall section creation function removed
                 
                 // Create outer walls
                 // Back wall (full wall)
@@ -650,7 +682,7 @@
                     -houseDimensions.length / 2,
                     materials.wallExterior
                 );
-                houseGroup.add(backWall);
+                // House element removed
                 
                 // Left wall
                 const leftWall = createWallSection(
@@ -662,7 +694,7 @@
                     0,
                     materials.wallExterior
                 );
-                houseGroup.add(leftWall);
+                // House element removed
                 
                 // Right wall
                 const rightWall = createWallSection(
@@ -674,7 +706,7 @@
                     0,
                     materials.wallExterior
                 );
-                houseGroup.add(rightWall);
+                // House element removed
                 
                 // Front wall with door opening
                 // Left section
@@ -687,7 +719,7 @@
                     houseDimensions.length / 2,
                     materials.wallExterior
                 );
-                houseGroup.add(frontWallLeft);
+                // House element removed
                 
                 // Right section
                 const frontWallRight = createWallSection(
@@ -699,7 +731,7 @@
                     houseDimensions.length / 2,
                     materials.wallExterior
                 );
-                houseGroup.add(frontWallRight);
+                // House element removed
                 
                 // Top section
                 const frontWallTop = createWallSection(
@@ -711,77 +743,9 @@
                     houseDimensions.length / 2,
                     materials.wallExterior
                 );
-                houseGroup.add(frontWallTop);
+                // House element removed
                 
-                // Add windows
-                function createWindow(width, height, x, y, z, rotationY) {
-                    const windowGroup = new THREE.Group();
-                    
-                    // Window glass
-                    const windowPane = new THREE.Mesh(
-                        new THREE.PlaneGeometry(width, height),
-                        materials.glass
-                    );
-                    windowPane.position.set(0, 0, 0.05);
-                    windowGroup.add(windowPane);
-                    
-                    // Window frame
-                    const frameWidth = 0.3;
-                    
-                    // Top frame
-                    const topFrame = new THREE.Mesh(
-                        new THREE.BoxGeometry(width + frameWidth * 2, frameWidth, 0.2),
-                        materials.woodDark
-                    );
-                    topFrame.position.set(0, height / 2 + frameWidth / 2, 0);
-                    windowGroup.add(topFrame);
-                    
-                    // Bottom frame
-                    const bottomFrame = new THREE.Mesh(
-                        new THREE.BoxGeometry(width + frameWidth * 2, frameWidth, 0.2),
-                        materials.woodDark
-                    );
-                    bottomFrame.position.set(0, -height / 2 - frameWidth / 2, 0);
-                    windowGroup.add(bottomFrame);
-                    
-                    // Left frame
-                    const leftFrame = new THREE.Mesh(
-                        new THREE.BoxGeometry(frameWidth, height, 0.2),
-                        materials.woodDark
-                    );
-                    leftFrame.position.set(-width / 2 - frameWidth / 2, 0, 0);
-                    windowGroup.add(leftFrame);
-                    
-                    // Right frame
-                    const rightFrame = new THREE.Mesh(
-                        new THREE.BoxGeometry(frameWidth, height, 0.2),
-                        materials.woodDark
-                    );
-                    rightFrame.position.set(width / 2 + frameWidth / 2, 0, 0);
-                    windowGroup.add(rightFrame);
-                    
-                    // Middle crossbar - horizontal
-                    const middleHBar = new THREE.Mesh(
-                        new THREE.BoxGeometry(width, frameWidth, 0.2),
-                        materials.woodDark
-                    );
-                    middleHBar.position.set(0, 0, 0);
-                    windowGroup.add(middleHBar);
-                    
-                    // Middle crossbar - vertical
-                    const middleVBar = new THREE.Mesh(
-                        new THREE.BoxGeometry(frameWidth, height, 0.2),
-                        materials.woodDark
-                    );
-                    middleVBar.position.set(0, 0, 0);
-                    windowGroup.add(middleVBar);
-                    
-                    // Position the window group
-                    windowGroup.position.set(x, y, z);
-                    windowGroup.rotation.y = rotationY || 0;
-                    
-                    return windowGroup;
-                }
+                // Original window creation function removed
                 
                 // Add windows to the house
                 // Front windows
@@ -791,7 +755,7 @@
                     houseDimensions.length / 2 + 0.1, 
                     0
                 );
-                houseGroup.add(frontWindowLeft);
+                // House element removed
                 
                 const frontWindowRight = createWindow(
                     6, 5, 
@@ -799,7 +763,7 @@
                     houseDimensions.length / 2 + 0.1, 
                     0
                 );
-                houseGroup.add(frontWindowRight);
+                // House element removed
                 
                 // Side windows
                 const leftWindowFront = createWindow(
@@ -808,7 +772,7 @@
                     15, 
                     Math.PI / 2
                 );
-                houseGroup.add(leftWindowFront);
+                // House element removed
                 
                 const leftWindowBack = createWindow(
                     6, 5, 
@@ -816,7 +780,7 @@
                     -15, 
                     Math.PI / 2
                 );
-                houseGroup.add(leftWindowBack);
+                // House element removed
                 
                 const rightWindowFront = createWindow(
                     6, 5, 
@@ -824,7 +788,7 @@
                     15, 
                     -Math.PI / 2
                 );
-                houseGroup.add(rightWindowFront);
+                // House element removed
                 
                 const rightWindowBack = createWindow(
                     6, 5, 
@@ -832,7 +796,7 @@
                     -15, 
                     -Math.PI / 2
                 );
-                houseGroup.add(rightWindowBack);
+                // House element removed
                 
                 // Back windows
                 const backWindowLeft = createWindow(
@@ -841,7 +805,7 @@
                     -houseDimensions.length / 2 - 0.1, 
                     Math.PI
                 );
-                houseGroup.add(backWindowLeft);
+                // House element removed
                 
                 const backWindowMiddle = createWindow(
                     6, 5, 
@@ -849,7 +813,7 @@
                     -houseDimensions.length / 2 - 0.1, 
                     Math.PI
                 );
-                houseGroup.add(backWindowMiddle);
+                // House element removed
                 
                 const backWindowRight = createWindow(
                     6, 5, 
@@ -857,7 +821,7 @@
                     -houseDimensions.length / 2 - 0.1, 
                     Math.PI
                 );
-                houseGroup.add(backWindowRight);
+                // House element removed
                 
                 // Furniture
                 // Table
@@ -868,7 +832,7 @@
                 );
                 smallTableTop.position.set(-2, smallTableHeight, -2);
                 smallTableTop.castShadow = true;
-                houseGroup.add(smallTableTop);
+                // House element removed
                 
                 // Table legs
                 for (let x = -1; x <= 1; x += 2) {
@@ -879,7 +843,7 @@
                         );
                         tableLeg.position.set(-2 + x * 0.9, smallTableHeight / 2, -2 + z * 0.5);
                         tableLeg.castShadow = true;
-                        houseGroup.add(tableLeg);
+                        // House element removed
                     }
                 }
                 
@@ -935,7 +899,7 @@
                 );
                 smallBedFrame.position.set(3, 0.15, -2);
                 smallBedFrame.castShadow = true;
-                houseGroup.add(smallBedFrame);
+                // House element removed
                 
                 // Mattress
                 const smallMattress = new THREE.Mesh(
@@ -944,7 +908,7 @@
                 );
                 smallMattress.position.set(3, 0.45, -2);
                 smallMattress.castShadow = true;
-                houseGroup.add(smallMattress);
+                // House element removed
                 
                 // Pillow
                 const pillow = new THREE.Mesh(
@@ -953,7 +917,7 @@
                 );
                 pillow.position.set(3, 0.7, -3.1);
                 pillow.castShadow = true;
-                houseGroup.add(pillow);
+                // House element removed
                 
                 // Blanket
                 const smallBlanket = new THREE.Mesh(
@@ -962,7 +926,7 @@
                 );
                 smallBlanket.position.set(3, 0.65, -1.4);
                 smallBlanket.castShadow = true;
-                houseGroup.add(smallBlanket);
+                // House element removed
                 
                 // Bookshelf
                 const bookshelf = new THREE.Group();
@@ -1038,7 +1002,7 @@
                     }
                 }
                 
-                houseGroup.add(bookshelf);
+                // House element removed
                 
                 // Add interior lighting
                 const pointLight = new THREE.PointLight(0xffbb77, 0.8, 15);
@@ -1046,7 +1010,7 @@
                 pointLight.castShadow = true;
                 pointLight.shadow.mapSize.width = 1024;
                 pointLight.shadow.mapSize.height = 1024;
-                houseGroup.add(pointLight);
+                // House element removed
                 
                 // Add light "fixtures"
                 const lightFixture = new THREE.Mesh(
@@ -1054,11 +1018,11 @@
                     new THREE.MeshStandardMaterial({ color: 0xffcc88, emissive: 0xffcc88, emissiveIntensity: 0.75 })
                 );
                 lightFixture.position.copy(pointLight.position);
-                houseGroup.add(lightFixture);
+                // House element removed
                 
                 // Position the player inside the house
                 const player = createLowPolyCharacter();
-                player.position.set(0, 1, 25); // Near the front door, inside the house
+                player.position.set(0, 1, 50); // Starting position adjusted (outside)
                 scene.add(player);
                 
                 // Create outside environment
@@ -3320,7 +3284,7 @@ const rightMidArmGroup = new THREE.Group();
 
                 // Animation loop with delta time
                 // Global cutscene variables - Setting to inactive but keeping for compatibility
-                let cutsceneActive = false; // Always false to prevent cutscene activation
+                let cutsceneActive = false; // Permanently disabled // Always false to prevent cutscene activation
                 let cutsceneStep = 0;
                 let cutsceneTimer = 0;
                 let dialogueBox = null;
@@ -3349,6 +3313,8 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Always update player movement since cutscene is disabled
                     update(time, delta);
+                    // Check story progress based on player position
+                    checkStoryProgress(player.position);
                     
                     // Animate flickering lights if they exist
                     if (window.flickeringLights) {
@@ -3386,7 +3352,7 @@ const rightMidArmGroup = new THREE.Group();
                     houseDimensions.length / 4,
                     materials.wallInterior
                 );
-                houseGroup.add(livingRoomWall);
+                // House element removed
                 
                 // Doorway in living room wall
                 const livingRoomDoorway = createWallSection(
@@ -3411,7 +3377,7 @@ const rightMidArmGroup = new THREE.Group();
                     houseDimensions.length / 8,
                     materials.wallInterior
                 );
-                houseGroup.add(kitchenWall);
+                // House element removed
                 
                 // Bedroom divider wall
                 const bedroomWall = createWallSection(
@@ -3423,7 +3389,7 @@ const rightMidArmGroup = new THREE.Group();
                     -houseDimensions.length / 4,
                     materials.wallInterior
                 );
-                houseGroup.add(bedroomWall);
+                // House element removed
                 
                 // Bathroom wall
                 const bathroomWall = createWallSection(
@@ -3435,7 +3401,7 @@ const rightMidArmGroup = new THREE.Group();
                     -houseDimensions.length / 3,
                     materials.wallInterior
                 );
-                houseGroup.add(bathroomWall);
+                // House element removed
                 
                 // Add furniture to different rooms
                 
@@ -3443,7 +3409,7 @@ const rightMidArmGroup = new THREE.Group();
                 const livingRoomGroup = new THREE.Group();
                 // Moved the entire living room group to ensure it's properly positioned
                 livingRoomGroup.position.set(0, 0, 5); // Changed z from 10 to 5
-                houseGroup.add(livingRoomGroup);
+                // House element removed
                 
                 // Couch
                 function createCouch() {
@@ -3645,7 +3611,7 @@ const rightMidArmGroup = new THREE.Group();
                 // Adjust position so it's more centered in the dining area and away from walls
                 // Moving it a bit toward the center to avoid wall intersections
                 diningRoomGroup.position.set(15, 0, 10); // Changed from z=15 to z=10
-                houseGroup.add(diningRoomGroup);
+                // House element removed
                 
                 // Dining table
                 const diningTable = new THREE.Group();
@@ -3737,7 +3703,7 @@ const rightMidArmGroup = new THREE.Group();
                 const kitchenGroup = new THREE.Group();
                 // Moved kitchen closer to center to avoid wall collisions
                 kitchenGroup.position.set(12, 0, 0); // Changed from x=15 to x=12
-                houseGroup.add(kitchenGroup);
+                // House element removed
                 
                 // Kitchen counter (L-shaped)
                 const counterMaterial = materials.woodLight;
@@ -3842,7 +3808,7 @@ const rightMidArmGroup = new THREE.Group();
                 const bedroomGroup = new THREE.Group();
                 // Adjusted bedroom position to be more centered in the room
                 bedroomGroup.position.set(-12, 0, -15); // Changed from (-15, 0, -20) to (-12, 0, -15)
-                houseGroup.add(bedroomGroup);
+                // House element removed
                 
                 // Bed
                 const bed = new THREE.Group();
@@ -4015,7 +3981,7 @@ const rightMidArmGroup = new THREE.Group();
                 const bathroomGroup = new THREE.Group();
                 // Adjusted bathroom position to avoid wall intersections
                 bathroomGroup.position.set(15, 0, -15); // Changed z from -20 to -15
-                houseGroup.add(bathroomGroup);
+                // House element removed
                 
                 // Toilet
                 const toilet = new THREE.Group();
@@ -4069,7 +4035,7 @@ const rightMidArmGroup = new THREE.Group();
                 livingRoomLight.castShadow = true;
                 livingRoomLight.shadow.mapSize.width = 1024;
                 livingRoomLight.shadow.mapSize.height = 1024;
-                houseGroup.add(livingRoomLight);
+                // House element removed
                 
                 // Kitchen light
                 const kitchenLight = new THREE.PointLight(0xffffcc, 0.8, 30);
@@ -4077,7 +4043,7 @@ const rightMidArmGroup = new THREE.Group();
                 kitchenLight.castShadow = true;
                 kitchenLight.shadow.mapSize.width = 1024;
                 kitchenLight.shadow.mapSize.height = 1024;
-                houseGroup.add(kitchenLight);
+                // House element removed
                 
                 // Dining room light
                 const diningRoomLight = new THREE.PointLight(0xffffcc, 0.8, 30);
@@ -4085,7 +4051,7 @@ const rightMidArmGroup = new THREE.Group();
                 diningRoomLight.castShadow = true;
                 diningRoomLight.shadow.mapSize.width = 1024;
                 diningRoomLight.shadow.mapSize.height = 1024;
-                houseGroup.add(diningRoomLight);
+                // House element removed
                 
                 // Bedroom light
                 const bedroomLight = new THREE.PointLight(0xffffcc, 0.8, 30);
@@ -4093,7 +4059,7 @@ const rightMidArmGroup = new THREE.Group();
                 bedroomLight.castShadow = true;
                 bedroomLight.shadow.mapSize.width = 1024;
                 bedroomLight.shadow.mapSize.height = 1024;
-                houseGroup.add(bedroomLight);
+                // House element removed
                 
                 // Bathroom light
                 const bathroomLight = new THREE.PointLight(0xffffcc, 0.8, 20);
@@ -4101,7 +4067,7 @@ const rightMidArmGroup = new THREE.Group();
                 bathroomLight.castShadow = true;
                 bathroomLight.shadow.mapSize.width = 1024;
                 bathroomLight.shadow.mapSize.height = 1024;
-                houseGroup.add(bathroomLight);
+                // House element removed
 
                 // Initialize audio effects
                 function initAudioEffects() {
@@ -4216,39 +4182,212 @@ const rightMidArmGroup = new THREE.Group();
                 
                 // Disable functions that trigger cutscenes
                 function startIntroCutscene() {
-                    // Disabled - do nothing
-                    return;
-                }
+    return; // Disabled for direct gameplay
+}
                 
                 function advanceCutscene() {
-                    // Disabled - do nothing
-                    return;
-                }
+    return; // Disabled for direct gameplay
+}
                 
                 function skipCutscene() {
-                    // Disabled - do nothing
-                    return;
-                }
+    return; // Disabled for direct gameplay
+}
                 
                 // Disable story progress checks that would trigger cutscenes
+                
+                // Check game story progress based on player position
                 function checkStoryProgress(position) {
-                    // Disabled - do nothing
-                    return;
+                    // Only check for progress if we're in a phase where events can trigger
+                    if (gameProgress.storyPhase !== 'escape' || gameProgress.borderReached) {
+                        return;
+                    }
+                    
+                    // Border checkpoint location - use simple distance calculation to improve performance
+                    const borderCheckpoint = {
+                        x: 0,    // Center x-coordinate
+                        z: 110,   // Changed from 120 to trigger event earlier
+                        radius: 5 // Detection radius
+                    };
+                    
+                    // Use squared distance for better performance (avoid expensive sqrt)
+                    const dx = position.x - borderCheckpoint.x;
+                    const dz = position.z - borderCheckpoint.z;
+                    const squaredDist = dx*dx + dz*dz;
+                    const squaredRadius = borderCheckpoint.radius * borderCheckpoint.radius;
+                    
+                    // If player is at the border checkpoint and it hasn't been triggered yet
+                    if (squaredDist < squaredRadius && !gameProgress.eventInProgress && !document.getElementById("border-encounter")) {
+                        console.log("Border checkpoint reached!");
+                        
+                        // Set flags to prevent retriggering
+                        gameProgress.borderReached = true;
+                        gameProgress.storyPhase = 'border';
+                        
+                        // Trigger UI immediately to avoid lag
+                        triggerBorderEncounter();
+                        
+                        // Pause movement for the event
+                        // cutsceneActive = false; // Kept disabled
+                    }
                 }
                 
+                // Trigger a story event at the border
                 function triggerBorderEncounter() {
-                    // Disabled - do nothing
-                    return;
+                    // Prevent multiple trigger
+                    if (gameProgress.eventInProgress) return;
+                    gameProgress.eventInProgress = true;
+
+                    // Disable player controls during the event
+                    blocker.style.display = 'none';
+                    
+                    // Create border checkpoint UI - optimize for better performance
+                    const encounterContainer = document.createElement('div');
+                    encounterContainer.id = 'border-encounter';
+                    
+                    // Set styles with minimal reflows
+                    Object.assign(encounterContainer.style, {
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '70%',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: '30px',
+                        borderRadius: '10px',
+                        textAlign: 'center',
+                        zIndex: '1000',
+                        opacity: '0',
+                        transition: 'opacity 0.3s ease-in'
+                    });
+                    
+                    // Prepare content first, then add to DOM once
+                    const content = document.createDocumentFragment();
+                    
+                    // Add title
+                    const title = document.createElement('h2');
+                    title.textContent = 'Border Checkpoint';
+                    title.style.marginBottom = '20px';
+                    content.appendChild(title);
+                    
+                    // Add description
+                    const description = document.createElement('p');
+                    description.innerHTML = 'You\'ve reached the city limits. Ahead, you see the heavily guarded border checkpoint.<br><br>Armed guards patrol the perimeter, and surveillance drones hover overhead. Getting past this won\'t be easy.';
+                    description.style.marginBottom = '30px';
+                    description.style.lineHeight = '1.5';
+                    content.appendChild(description);
+                    
+                    // Create options based on inventory
+                    const optionsContainer = document.createElement('div');
+                    Object.assign(optionsContainer.style, {
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '15px'
+                    });
+                    
+                    // Option 1: Try to sneak past
+                    const sneakOption = document.createElement('button');
+                    sneakOption.textContent = 'Try to sneak past the guards';
+                    Object.assign(sneakOption.style, {
+                        padding: '15px 20px',
+                        backgroundColor: '#446688',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    sneakOption.addEventListener('click', function() {
+                        // Redirect to sneak page
+                        window.location.href = '/sneak';
+                    });
+                    optionsContainer.appendChild(sneakOption);
+                    
+                    // Option 2: Look for alternative route
+                    const alternativeOption = document.createElement('button');
+                    alternativeOption.textContent = 'Search for an alternative route';
+                    Object.assign(alternativeOption.style, {
+                        padding: '15px 20px',
+                        backgroundColor: '#557755',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    alternativeOption.addEventListener('click', function() {
+                        // Redirect to alternative route page
+                        window.location.href = '/alternative';
+                    });
+                    optionsContainer.appendChild(alternativeOption);
+                    
+                    // Option 3: Show crowbar option if available
+                    if (gameProgress.hasBackpack && window.playerInventory && window.playerInventory.hasItem('Crowbar')) {
+                        const crowbarOption = document.createElement('button');
+                        crowbarOption.textContent = 'Use crowbar to break into the sewers';
+                        Object.assign(crowbarOption.style, {
+                            padding: '15px 20px',
+                            backgroundColor: '#775555',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '16px'
+                        });
+                        crowbarOption.addEventListener('click', function() {
+                            // Redirect to disguise page
+                            window.location.href = '/disguise';
+                        });
+                        optionsContainer.appendChild(crowbarOption);
+                    }
+                    
+                    // Add options to content
+                    content.appendChild(optionsContainer);
+                    
+                    // Add all content at once to minimize layout thrashing
+                    encounterContainer.appendChild(content);
+                    document.body.appendChild(encounterContainer);
+                    
+                    // Force a reflow and then fade in - smoother transition
+                    setTimeout(() => {
+                        encounterContainer.style.opacity = '1';
+                    }, 10);
                 }
 
                 // Modify the initialization to enable player controls immediately
+                
+                // Add specific items for this scenario
                 document.addEventListener('DOMContentLoaded', function() {
                     // Unlock controls immediately
                     blocker.style.display = 'flex';
                     instructions.style.display = '';
                     
-                    // Position player at the border checkpoint area
-                    player.position.set(0, 1, 200); // Position near the border
+                    
+    // Ensure controls are unlocked from the start
+    blocker.style.display = "flex";
+    instructions.style.display = "";
+    
+    // Display sneaking path message
+    displayMessage("You've chosen to sneak past the checkpoint. Stay hidden in the shadows.", 5000);
+
+    
+    // Ensure inventory is displayed when hasBackpack is true
+    if (window.playerInventory && gameProgress.hasBackpack) {
+        window.playerInventory.showUI(true);
+    }
+    
+    // Position player at the border checkpoint area
+                    player.position.set(0, 1, 50); // Starting position adjusted (outside)
+                    
+                    // Check localStorage for backpack status and restore inventory
+                    const hasBackpack = localStorage.getItem('hasBackpack') === 'true';
+                    gameProgress.hasBackpack = hasBackpack;
+                    
+                    // If this page is loaded directly without coming from game.html, 
+                    // we need to ensure the player has the right items
+                    if (window.playerInventory) {
+                        if (hasBackpack) {
+                            window.playerInventory.addItem('Crowbar', 'A sturdy metal tool that can force doors and serve as a weapon.'); // Position near the border
                     
                     // Add a message about sneaking
                     const sneakMessage = document.createElement('div');
@@ -4274,6 +4413,9 @@ const rightMidArmGroup = new THREE.Group();
                             sneakMessage.remove();
                         }, 1000);
                     }, 10000);
+                        }
+                        window.playerInventory.showUI(hasBackpack);
+                    }
                 });
 
                 // Start the actual game
@@ -4325,23 +4467,34 @@ const rightMidArmGroup = new THREE.Group();
                 }
                 
                 // Initialize inventory system
+                
+                // Initialize inventory system
                 function initInventorySystem() {
+                    // Load existing inventory from localStorage if available
+                    let savedInventory = localStorage.getItem('gameInventory');
+                    let savedBackpack = localStorage.getItem('hasBackpack');
+                    
                     // Create inventory manager
                     window.playerInventory = {
-                        items: [],
+                        items: savedInventory ? JSON.parse(savedInventory) : [],
                         
                         addItem: function(name, description) {
-                            this.items.push({
-                                name: name,
-                                description: description,
-                                used: false
-                            });
-                            this.updateUI();
+                            // Check if item already exists to prevent duplicates
+                            if (!this.hasItem(name)) {
+                                this.items.push({
+                                    name: name,
+                                    description: description,
+                                    used: false
+                                });
+                                this.saveInventory();
+                                this.updateUI();
+                            }
                         },
                         
                         useItem: function(index) {
                             if (index >= 0 && index < this.items.length) {
                                 this.items[index].used = true;
+                                this.saveInventory();
                                 this.updateUI();
                                 return true;
                             }
@@ -4350,6 +4503,21 @@ const rightMidArmGroup = new THREE.Group();
                         
                         hasItem: function(name) {
                             return this.items.some(item => item.name === name && !item.used);
+                        },
+                        
+                        saveInventory: function() {
+                            // Save inventory to localStorage
+                            localStorage.setItem('gameInventory', JSON.stringify(this.items));
+                            // Save backpack status
+                            localStorage.setItem('hasBackpack', gameProgress.hasBackpack);
+                        },
+                        
+                        clearInventory: function() {
+                            // Clear inventory (for game restart)
+                            this.items = [];
+                            localStorage.removeItem('gameInventory');
+                            localStorage.removeItem('hasBackpack');
+                            this.updateUI();
                         },
                         
                         showUI: function(visible) {
@@ -4395,7 +4563,12 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Initialize empty inventory UI
                     window.playerInventory.updateUI();
-                    window.playerInventory.showUI(false); // Hide initially
+                    window.playerInventory.showUI(gameProgress.hasBackpack); // Show immediately if player has backpack
+                    
+                    // If we have a saved backpack status, apply it
+                    if (savedBackpack !== null) {
+                        gameProgress.hasBackpack = savedBackpack === 'true';
+                    }
                 }
                 
                 // Show backpack choice UI
