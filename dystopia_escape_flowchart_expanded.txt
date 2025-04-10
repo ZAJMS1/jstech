@@ -16,8 +16,6 @@ START: OPENING CUTSCENE
           │                                          └─→ Add to inventory:
           │                                              - Crowbar: Can force doors & remove obstacles
           │                                              - Sandwich: Restore health/stamina once
-          │                                              - Notebook: Contains coded resistance contacts
-          │                                              - Family photo: Emotional leverage in certain situations
           │
           └─── Leave without backpack ────────────────┐
                                                      │
@@ -45,7 +43,6 @@ AFTER LEAVING HOUSE: THE STREET
      │                                 │                                                           ├─── Bribe with ration cards ───→ 50% success rate
      │                                 │                                                           │
      │                                 │                                                           ├─── Claim system error ────────→ 30% success rate
-     │                                 │                                                           │                               (80% with notebook intel)
      │                                 │                                                           │
      │                                 │                                                           └─── Attempt to flee ───────────→ 20% success rate
      │                                 │                                                                                           (60% with crowbar distraction)
@@ -66,7 +63,7 @@ AFTER LEAVING HOUSE: THE STREET
      │                                 └─── Turn back ────────→ EVENT 2A.3: ALTERNATIVE ROUTE
      │                                                          │
      │                                                          ├─── Find secret passage ────→ Connects to Underground Tunnels
-     │                                                          │                             (Requires notebook intel or 20% chance discovery)
+     │                                                          │                             (20% chance discovery)
      │                                                          │
      │                                                          ├─── Circle around patrol ──→ Takes longer, energy cost -10%
      │                                                          │                            (Sandwich restores this)
@@ -79,10 +76,8 @@ AFTER LEAVING HOUSE: THE STREET
      │                              ├─── EVENT 2B.1: GANG TERRITORY
      │                              │    │
      │                              │    ├─── Negotiate passage ──────→ Costs valuable items or information
-     │                              │    │                              (Family photo can be used to evoke sympathy)
      │                              │    │
      │                              │    ├─── Find alternative path ───→ 50% chance of success, risk of dead end
-     │                              │    │                               (90% with notebook map)
      │                              │    │
      │                              │    └─── Force way through ───────→ COMBAT ENCOUNTER
      │                              │                                    (Crowbar provides significant advantage)
@@ -91,11 +86,11 @@ AFTER LEAVING HOUSE: THE STREET
      │                              │    │
      │                              │    ├─── Prove allegiance ────────→ EVENT 2B.2.1: LOYALTY TEST
      │                              │    │                               │
-     │                              │    │                               ├─── Share intel from notebook ─→ Strong ally gained
+     │                              │    │                               ├─── Share intel verbally ───────→ Some trust gained
      │                              │    │                               │
-     │                              │    │                               ├─── Complete test mission ────→ Access to secret routes
+     │                              │    │                               ├─── Complete test mission ──────→ Access to secret routes
      │                              │    │                               │
-     │                              │    │                               └─── Refuse test ─────────────→ Limited help provided
+     │                              │    │                               └─── Refuse test ───────────────→ Limited help provided
      │                              │    │
      │                              │    ├─── Request immediate help ───→ 30% chance of success
      │                              │    │                                (80% if sharing sandwich)
@@ -128,7 +123,6 @@ AFTER LEAVING HOUSE: THE STREET
                                     │    ├─── Persuade driver ─────────→ EVENT 2C.2.1: DRIVER NEGOTIATION
                                     │    │                               │
                                     │    │                               ├─── Appeal to humanity ─→ 40% success rate
-                                    │    │                               │                         (80% with family photo)
                                     │    │                               │
                                     │    │                               ├─── Bribe ─────────────→ Requires valuable resources
                                     │    │                               │
@@ -137,12 +131,11 @@ AFTER LEAVING HOUSE: THE STREET
                                     │    ├─── Stow away in cargo ───────→ 50% success rate
                                     │    │                                (90% with crowbar to create hiding spot)
                                     │    │
-                                    │    └─── Create false credentials ──→ Requires specific items or skills
+                                    │    └─── Create false credentials ──→ Requires specific skills
                                     │
                                     └─── EVENT 2C.3: AUTOMATED TRANSPORT
                                          │
                                          ├─── Hack security system ─────→ 20% success rate
-                                         │                                (60% with notebook codes)
                                          │
                                          ├─── Forge access token ───────→ Requires specific skills
                                          │
@@ -166,7 +159,6 @@ ESCAPE ROUTE 1: Radio Contact
     │                                 │                             │                       (90% if sharing sandwich)
     │                                 │                             │
     │                                 │                             ├─── Verify contacts ─→ 80% success, takes more time
-    │                                 │                             │                       (95% with notebook intel)
     │                                 │                             │
     │                                 │                             └─── Set contingency → 70% success, creates backup plan
     │                                 │
@@ -230,7 +222,7 @@ ESCAPE ROUTE 2: Underground Tunnels
             │                           │
             │                           ├─── Request safe passage ───→ May require payment or service
             │                           │
-            │                           └─── Share critical intel ────→ Provide value from notebook
+            │                           └─── Share verbal intel ──────→ Provide value from memory
             │
             └─── Follow footprints ──→ EVENT 3B.3.3: TRACKING THE UNKNOWN
                                         │
@@ -314,7 +306,6 @@ SYMPATHETIC OFFICIAL
      ├─── Appeal to conscience → EVENT 4B.2: MORAL PERSUASION
      │                            │
      │                            ├─── Share personal story ────→ 50% success rate
-     │                            │                               (90% with family photo)
      │                            │
      │                            ├─── Reveal regime atrocities → Requires specific knowledge
      │                            │
@@ -419,8 +410,6 @@ FAILURE ENDINGS
 - Backpack choice at beginning significantly affects gameplay options
 - Crowbar: Opens locked doors, serves as tool and weapon
 - Sandwich: Can restore health or be shared to build trust
-- Notebook: Contains critical intel, maps, and contact codes
-- Family photo: Emotional tool for persuasion attempts
 - Limited inventory → Strategic decisions about what to keep/discard
 
 ### MEMORY FRAGMENTS

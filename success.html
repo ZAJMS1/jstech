@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escape Successful - Dystopia Escape</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #eee;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1502790671504-542ad42d5189?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+            animation: fadeBackground 30s infinite alternate;
+        }
+        
+        @keyframes fadeBackground {
+            0% {
+                background-position: center left;
+            }
+            100% {
+                background-position: center right;
+            }
+        }
+        
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background-color: rgba(20, 20, 30, 0.9);
+            border: 2px solid #63ff73;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(99, 255, 115, 0.4);
+            animation: pulse 4s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 30px rgba(99, 255, 115, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(99, 255, 115, 0.6);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(99, 255, 115, 0.4);
+            }
+        }
+        
+        h1 {
+            color: #63ff73;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(99, 255, 115, 0.7);
+        }
+        
+        p {
+            line-height: 1.6;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .success-details {
+            background-color: rgba(30, 50, 30, 0.7);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .congrats {
+            text-align: center;
+            font-size: 1.5rem;
+            color: #63ff73;
+            margin: 20px 0;
+            animation: glow 2s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 5px rgba(99, 255, 115, 0.5);
+            }
+            to {
+                text-shadow: 0 0 15px rgba(99, 255, 115, 0.9);
+            }
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+        }
+        
+        .button {
+            padding: 12px 20px;
+            background-color: rgba(40, 60, 40, 0.9);
+            border: 1px solid #63ff73;
+            color: #ccc;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+            border-radius: 5px;
+            text-decoration: none;
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .button:hover {
+            background-color: rgba(60, 100, 60, 0.9);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(99, 255, 115, 0.7);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Escape Successful</h1>
+        
+        <div class="congrats">You Have Escaped the Dystopian City!</div>
+        
+        <p>Your plan worked perfectly. As you blended in with the exhausted workers heading through the checkpoint, the sleepy guard barely glanced at your forged papers before waving you through. You maintained your disguise until you were safely past the city walls.</p>
+        
+        <div class="success-details">
+            <p>Beyond the checkpoint lies the vast unknown—a world you've only heard whispers about. The polluted air of the city gives way to cleaner breezes, and for the first time in your life, you can see stars beginning to appear in the darkening sky.</p>
+            
+            <p>You've heard rumors of resistance camps in the wilderness. Some say there are entire communities living off the grid, free from the oppressive surveillance of the regime. Your journey is far from over, but the hardest part is behind you.</p>
+            
+            <p>With your resourcefulness and courage, you've accomplished what few have dared to attempt. You are free.</p>
+        </div>
+        
+        <div class="actions">
+            <a href="/" class="button">Play Again</a>
+        </div>
+    </div>
+</body>
+</html> 

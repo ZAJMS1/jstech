@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alternative Route - Dystopia Escape</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #eee;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)), url('https://images.unsplash.com/photo-1518544866330-3b72a530fe5f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background-color: rgba(20, 20, 30, 0.9);
+            border: 2px solid #73a1ff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+        }
+        
+        h1 {
+            color: #73a1ff;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(115, 161, 255, 0.5);
+        }
+        
+        p {
+            line-height: 1.6;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .outcome {
+            background-color: rgba(30, 40, 60, 0.7);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .success-chance {
+            text-align: center;
+            font-size: 1.3rem;
+            color: #73a1ff;
+            margin: 20px 0;
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 40px;
+        }
+        
+        .button {
+            padding: 12px 20px;
+            background-color: rgba(40, 40, 60, 0.9);
+            border: 1px solid #73a1ff;
+            color: #ccc;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+            border-radius: 5px;
+            text-decoration: none;
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .button:hover {
+            background-color: rgba(60, 60, 100, 0.9);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(115, 161, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .button.primary {
+            background-color: rgba(60, 90, 140, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Alternative Route</h1>
+        
+        <p>After careful scouting, you discover a maintenance tunnel that runs beneath the checkpoint. It's dark and cramped, but appears unguarded.</p>
+        
+        <div class="outcome">
+            <p>The maintenance tunnel entrance is hidden behind a pile of discarded metal panels. You push them aside to reveal a rusty hatch embedded in the ground. It hasn't been used in years, evidenced by the layer of dust covering its surface.</p>
+            
+            <p>The tunnel will be tight and uncomfortable, but it avoids the heavily guarded checkpoint entirely. If you can make it through without getting lost in the network of underground passages, you should emerge safely on the other side of the border.</p>
+        </div>
+        
+        <div class="success-chance">Success Chance: 60%</div>
+        
+        <div class="actions">
+            <a href="/game" class="button">Return to Checkpoint</a>
+            <a href="/success" class="button primary">Enter Tunnel</a>
+        </div>
+    </div>
+</body>
+</html> 
