@@ -306,19 +306,24 @@
                 }, 500);
             });
             
-            // Show the popup after a 2 second delay
-            setTimeout(() => {
-                // Add transition for smooth appearance
-                backdrop.style.transition = 'opacity 0.5s ease-in-out';
-                backdrop.style.opacity = '0';
-                backdrop.style.display = 'flex';
-                
-                // Force reflow then fade in
+            // Only show the popup on alternative.html page
+            // Get the current page path
+            const currentPath = window.location.pathname;
+            // Check if this is alternative.html
+            if (currentPath.includes('alternative') || currentPath.endsWith('/alternative')) {
+                // Show the popup after a 2 second delay
                 setTimeout(() => {
-                    backdrop.style.opacity = '1';
-                }, 50);
-            }, 2000); // 2 second delay
-        });
+                    // Add transition for smooth appearance
+                    backdrop.style.transition = 'opacity 0.5s ease-in-out';
+                    backdrop.style.opacity = '0';
+                    backdrop.style.display = 'flex';
+                    
+                    // Force reflow then fade in
+                    setTimeout(() => {
+                        backdrop.style.opacity = '1';
+                    }, 50);
+                }, 2000); // 2 second delay
+            }       });
     </script>
 
     <div id="game-container">
@@ -1164,8 +1169,18 @@
                 
                 // Position the player inside the house
                 const player = createLowPolyCharacter();
-    player.position.set(0, 1, 50); // Reset position
-    scene.add(player); // Ensure player is added to scene
+    // Set initial position
+                if (typeof savedPosition !== "undefined" && savedPosition) {
+                    console.log("Applying saved position:", savedPosition);
+                    player.position.set(
+                        savedPosition.x,
+                        savedPosition.y,
+                        savedPosition.z
+                    );
+                } else {
+                    player.position.set(0, 1, 50); // Default starting position
+                }
+                scene.add(player); // Ensure player is added to scene
                 player.position.set(0, 1, 50); // Starting position adjusted (outside)
                 scene.add(player);
                 
@@ -10243,6 +10258,9 @@ function showOutcomePopup(success, successText, failureText, successRedirect, fa
                             if (data.success) {
                                 console.log('Game saved successfully');
                                 // Redirect to home page
+                                // Also save to localStorage for local continuity
+                                localStorage.setItem('gameData', JSON.stringify(gameData));
+                                console.log('Game also saved to localStorage');
                                 window.location.href = 'index.html';
                             } else {
                                 console.error('Failed to save game:', data.error);

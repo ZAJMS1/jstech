@@ -276,6 +276,2048 @@
                 let savedCameraRotation = null;
                 let savedGameProgress = null;
                 let savedInventoryItems = null;
+                let isContinuingSavedGame = false; // Flag to track if we're continuing from a saved game
+                
+                if (savedGameData) {
+                    try {
+                        const parsedData = JSON.parse(savedGameData);
+                        savedPosition = parsedData.position;
+                        savedCameraRotation = parsedData.cameraRotation;
+                        savedGameProgress = parsedData.gameProgress;
+                        savedInventoryItems = parsedData.inventoryItems;
+                        isContinuingSavedGame = true; // Set flag when loading saved data
+                        
+                        // Clear the saved data from session storage to prevent reloading on refresh
+                        sessionStorage.removeItem('savedGameData');
+                        
+                        console.log('Loaded saved game data');
+                    } catch (error) {
+                        console.error('Error parsing saved game data:', error);
+                    }
+                }
+                
+                // Game state
+                const state = {
+                    keysPressed: {},
+                    playerVelocity: new THREE.Vector3(),
+                    playerDirection: new THREE.Vector3(),
+                    cameraOffset: new THREE.Vector3(0, 3, 7),
+                    cameraRotation: savedCameraRotation || { x: 0, y: 0 },
+                    cameraMode: 'free', // Default camera mode: 'free' or 'shiftlock'
+                    rightMouseDown: false,
+                    mousePosition: { x: 0, y: 0 },
+                    onGround: true,
+                    movementSpeed: 0.25,
+                    turnSpeed: 0.03,
+                    jumpForce: 0.22,
+                    gravity: 0.0125,
+                    animationState: 'idle',
+                    timeSinceLastStep: 0,
+                    lastInputTime: 0,
+                    autoAlignDelay: 2, // Seconds to wait before auto-aligning camera
+                    movingDirection: null, // Current moving direction
+                    idleTime: 0,
+                    lastHeadMove: 0,
+                    headTargetRotation: null,
+                    headMoveDuration: 0,
+                    headMoveStart: 0,
+                    jumpPhase: null,
+                    jumpTime: 0,
+                    landingComplete: false, // Track if landing animation has completed
+                    inventory: {
+                        isOpen: false,
+                        items: savedInventoryItems || [],
+                        slots: 15,
+                        slotElements: [],
+                        initialized: false
+                    },
+                    gamePaused: false, // Add pause state
+                    spaceKeyReleased: true, // Track if space key has been released
+                };
+                
+                // Initialize inventory system
+                function initInventorySystemOld() { // Renamed to avoid conflict
+                    // Only initialize once
+                    if (state.inventory.initialized) return;
+                    
+                    // Mark as initialized
+                    state.inventory.initialized = true;
+                    
+                    // Clear existing slots if any
+                    const inventoryGrid = document.getElementById('inventory-grid');
+                    if (!inventoryGrid) {
+                        console.error("Inventory grid element not found!");
+                        return;
+                    }
+                    
+                    inventoryGrid.innerHTML = '';
+                    state.inventory.slotElements = [];
+                    
+                    // Create inventory slots
+                    for (let i = 0; i < state.inventory.slots; i++) {
+                        const slot = document.createElement('div');
+                        slot.className = 'inventory-slot';
+                        slot.dataset.index = i;
+                        slot.innerHTML = `<div class="item-tooltip"></div>`;
+                        
+                        // Add click handler for using items
+                        slot.addEventListener('click', () => {
+                            const item = state.inventory.items[i];
+                            if (item) {
+                                // Handle item usage (can be expanded later)
+                                console.log(`Used item: ${item.name}`);
+                            }
+                        });
+                        
+                        inventoryGrid.appendChild(slot);
+                        state.inventory.slotElements.push(slot);
+                    }
+                    
+                    // Add some test items to inventory
+                    addItemToInventory({
+                        name: "Health Potion",
+                        description: "Restores 25 health points",
+                        icon: "🧪", // Using emoji for simplicity
+                        count: 1
+                    });
+                    
+                    addItemToInventory({
+                        name: "Rusty Key",
+                        description: "Might open something",
+                        icon: "🔑",
+                        count: 1
+                    });
+                    
+                    console.log("Inventory system initialized with", state.inventory.slots, "slots");
+                }
+
+                // Add item to inventory
+                function addItemToInventory(item) {
+                    // Check if item already exists
+                    const existingItemIndex = state.inventory.items.findIndex(i => 
+                        i && i.name === item.name);
+                    
+                    if (existingItemIndex >= 0 && state.inventory.items[existingItemIndex].stackable !== false) {
+                        // Increment count for existing item
+                        state.inventory.items[existingItemIndex].count += item.count || 1;
+                        updateInventoryDisplay();
+                        return true;
+                    } else {
+                        // Find empty slot
+                        const emptySlotIndex = state.inventory.items.findIndex(i => !i);
+                        
+                        if (emptySlotIndex >= 0 && emptySlotIndex < state.inventory.slots) {
+                            // Add to empty slot
+                            state.inventory.items[emptySlotIndex] = item;
+                            updateInventoryDisplay();
+                            return true;
+                        } else if (state.inventory.items.length < state.inventory.slots) {
+                            // Add to new slot
+                            state.inventory.items.push(item);
+                            updateInventoryDisplay();
+                            return true;
+                        }
+                    }
+                    
+                    // Inventory full
+                    console.log("Inventory full!");
+                    return false;
+                }
+
+                // Update inventory display
+                function updateInventoryDisplay() {
+                    if (!state.inventory.initialized) return;
+                    
+                    // Remove any existing floating tooltips
+                    document.querySelectorAll('.floating-tooltip').forEach(el => el.remove());
+                    
+                    for (let i = 0; i < state.inventory.slots; i++) {
+                        const slot = state.inventory.slotElements[i];
+                        if (!slot) continue;
+                        
+                        const item = state.inventory.items[i];
+                        
+                        if (item) {
+                            // Update slot with item info
+                            slot.innerHTML = `<div>${item.icon}</div>
+                                ${item.count > 1 ? `<div class="item-count">${item.count}</div>` : ''}`;
+                            
+                            // Add mouseover event to show tooltip
+                            slot.onmouseover = () => {
+                                const rect = slot.getBoundingClientRect();
+                                const tooltip = document.createElement('div');
+                                tooltip.className = 'floating-tooltip';
+                                tooltip.textContent = item.name;
+                                tooltip.style.position = 'absolute';
+                                tooltip.style.left = (rect.left + rect.width/2) + 'px';
+                                tooltip.style.top = (rect.bottom + 10) + 'px';
+                                tooltip.style.transform = 'translateX(-50%)';
+                                tooltip.style.backgroundColor = 'rgba(10, 10, 30, 0.9)';
+                                tooltip.style.color = 'white';
+                                tooltip.style.padding = '5px 10px';
+                                tooltip.style.borderRadius = '5px';
+                                tooltip.style.fontWeight = 'bold';
+                                tooltip.style.boxShadow = '0 0 8px rgba(100, 100, 255, 0.5)';
+                                tooltip.style.zIndex = '999';
+                                tooltip.style.pointerEvents = 'none';
+                                tooltip.style.border = '1px solid #555';
+                                document.body.appendChild(tooltip);
+                            };
+                            
+                            // Add mouseout event to hide tooltip
+                            slot.onmouseout = () => {
+                                document.querySelectorAll('.floating-tooltip').forEach(el => el.remove());
+                            };
+                        } else {
+                            // Empty slot
+                            slot.innerHTML = '';
+                            slot.onmouseover = null;
+                            slot.onmouseout = null;
+                        }
+                    }
+                }
+
+                // Toggle inventory display
+                function toggleInventory() {
+                    // Use only the compact inventory in the top-right corner
+                    if (window.playerInventory) {
+                        // Toggle visibility of the compact inventory
+                        const inventoryUI = document.getElementById('inventory-ui');
+                        if (inventoryUI) {
+                            const currentDisplay = inventoryUI.style.display;
+                            inventoryUI.style.display = currentDisplay === 'none' ? 'block' : 'none';
+                            console.log("Toggled compact inventory visibility");
+                        } else {
+                            console.log("Compact inventory UI not found");
+                        }
+                    }
+                    
+                    // No longer using the panel inventory
+                    // const inventoryPanel = document.getElementById('inventory-panel');
+                    // if (!inventoryPanel) {
+                    //     console.error("Inventory panel element not found!");
+                    //     return;
+                    // }
+                    
+                    // state.inventory.isOpen = !state.inventory.isOpen;
+                    // console.log("Toggle inventory:", state.inventory.isOpen);
+                    
+                    // if (state.inventory.isOpen) {
+                    //     // Initialize inventory if not done yet (safety check)
+                    //     if (!state.inventory.initialized) {
+                    //         initInventorySystemOld();
+                    //     }
+                    //     
+                    //     inventoryPanel.style.display = 'block';
+                    //     updateInventoryDisplay();
+                    //     console.log("Opened inventory");
+                    // } else {
+                    //     inventoryPanel.style.display = 'none';
+                    //     console.log("Closed inventory");
+                    // }
+                }
+
+                // Basic Three.js setup
+                const scene = new THREE.Scene();
+                
+                // Update scene background and fog for a brighter ambiance
+                scene.background = new THREE.Color(0x121212); // Dark background
+                
+                // Set up more realistic static fog for the entire scene
+                // Use a denser FogExp2 for a more atmospheric effect
+                scene.fog = new THREE.FogExp2(0x121212, 0.015); // Slightly less dense fog (0.02 -> 0.015)
+                
+                // Add a subtle color tint to the fog for better atmosphere
+                const fogColor = new THREE.Color(0x121212);
+                fogColor.lerp(new THREE.Color(0x334455), 0.1); // Blend in a slight blue tint
+                scene.fog.color = fogColor;
+                
+                // Enhance ambient lighting - change to darker mood
+                const ambientLight = new THREE.AmbientLight(0x555566, 0.6);
+                scene.add(ambientLight);
+                
+                // Add directional light for natural moonlight effect
+                const dirLight = new THREE.DirectionalLight(0x556677, 0.8);
+                dirLight.position.set(30, 100, 30);
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 2048;
+                dirLight.shadow.mapSize.height = 2048;
+                dirLight.shadow.camera.near = 1;
+                dirLight.shadow.camera.far = 200;
+                dirLight.shadow.camera.left = -50;
+                dirLight.shadow.camera.right = 50;
+                dirLight.shadow.camera.top = 50;
+                dirLight.shadow.camera.bottom = -50;
+                scene.add(dirLight);
+                
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                document.getElementById('game-container').appendChild(renderer.domElement);
+                
+                // Create a house the player can walk around in
+                const houseGroup = new THREE.Group();
+                scene.add(houseGroup);
+                
+                // Materials library
+                const materials = {
+                    // Flooring
+                    woodFloor: new THREE.MeshStandardMaterial({ 
+                        color: 0x9b7653, 
+                        roughness: 0.8,
+                        metalness: 0.2
+                    }),
+                    tileFloor: new THREE.MeshStandardMaterial({ 
+                        color: 0xd9d9d9, 
+                        roughness: 0.7,
+                        metalness: 0.1
+                    }),
+                    carpetFloor: new THREE.MeshStandardMaterial({ 
+                        color: 0x496a81, 
+                        roughness: 0.9,
+                        metalness: 0
+                    }),
+                    
+                    // Walls
+                    wallExterior: new THREE.MeshStandardMaterial({ 
+                        color: 0xe8e8e8, 
+                        roughness: 0.9,
+                        metalness: 0
+                    }),
+                    wallInterior: new THREE.MeshStandardMaterial({ 
+                        color: 0xeaeaea, 
+                        roughness: 0.9,
+                        metalness: 0 
+                    }),
+                    
+                    // Furniture
+                    woodDark: new THREE.MeshStandardMaterial({ 
+                        color: 0x5d4037, 
+                        roughness: 0.8,
+                        metalness: 0.1
+                    }),
+                    woodMedium: new THREE.MeshStandardMaterial({ 
+                        color: 0x8d6e63, 
+                        roughness: 0.8,
+                        metalness: 0.1
+                    }),
+                    woodLight: new THREE.MeshStandardMaterial({ 
+                        color: 0xbcaaa4, 
+                        roughness: 0.8,
+                        metalness: 0.1
+                    }),
+                    fabric: new THREE.MeshStandardMaterial({ 
+                        color: 0x78909c, 
+                        roughness: 0.9,
+                        metalness: 0
+                    }),
+                    fabricDark: new THREE.MeshStandardMaterial({ 
+                        color: 0x455a64, 
+                        roughness: 0.9,
+                        metalness: 0
+                    }),
+                    metal: new THREE.MeshStandardMaterial({ 
+                        color: 0xb0bec5, 
+                        roughness: 0.3,
+                        metalness: 0.8
+                    }),
+                    glass: new THREE.MeshStandardMaterial({ 
+                        color: 0xeceff1, 
+                        roughness: 0.1,
+                        metalness: 0.9,
+                        transparent: true,
+                        opacity: 0.3
+                    }),
+                    
+                    // Roof
+                    roofTiles: new THREE.MeshStandardMaterial({ 
+                        color: 0x5d4037, 
+                        roughness: 0.9,
+                        metalness: 0.1
+                    })
+                };
+                
+                // House dimensions
+                const houseDimensions = {
+                    width: 50,
+                    length: 50,
+                    height: 15,
+                    wallThickness: 1
+                };
+                
+                // Door and window dimensions - use var to avoid redeclaration
+                var frontDoorWidth = 6; // Increased door width
+                var frontDoorHeight = 10; // Increased door height
+                var frontWallHeight = houseDimensions.height * 0.9; // 90% of house height for interior walls
+                var windowWidth = 5;
+                var windowHeight = 5;
+                
+                // Create foundation - main floor
+                const mainFloor = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        houseDimensions.width - 1, 
+                        0.2, 
+                        houseDimensions.length - 1
+                    ),
+                    materials.wallInterior
+                );
+                mainFloor.position.y = 0; // Position at ground level
+                mainFloor.receiveShadow = true;
+                houseGroup.add(mainFloor);
+                
+                // Create ceiling - separate from the floor
+                const ceiling = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        houseDimensions.width - 1, 
+                        0.2, 
+                        houseDimensions.length - 1
+                    ),
+                    materials.wallInterior
+                );
+                ceiling.position.y = houseDimensions.height;
+                ceiling.receiveShadow = true;
+                houseGroup.add(ceiling);
+                
+                // Function to create wall sections
+                function createWallSection(width, height, depth, x, y, z, material) {
+                    const wall = new THREE.Mesh(
+                        new THREE.BoxGeometry(width, height, depth),
+                        material
+                    );
+                    wall.position.set(x, y, z);
+                    wall.castShadow = true;
+                    wall.receiveShadow = true;
+                    wall.userData.collidable = true; // Mark as collidable
+                    return wall;
+                }
+                
+                // Create outer walls
+                // Back wall (full wall)
+                const backWall = createWallSection(
+                    houseDimensions.width, 
+                    houseDimensions.height, 
+                    houseDimensions.wallThickness,
+                    0, 
+                    houseDimensions.height / 2, 
+                    -houseDimensions.length / 2,
+                    materials.wallExterior
+                );
+                houseGroup.add(backWall);
+                
+                // Left wall
+                const leftWall = createWallSection(
+                    houseDimensions.wallThickness, 
+                    houseDimensions.height, 
+                    houseDimensions.length,
+                    -houseDimensions.width / 2, 
+                    houseDimensions.height / 2, 
+                    0,
+                    materials.wallExterior
+                );
+                houseGroup.add(leftWall);
+                
+                // Right wall
+                const rightWall = createWallSection(
+                    houseDimensions.wallThickness, 
+                    houseDimensions.height, 
+                    houseDimensions.length,
+                    houseDimensions.width / 2, 
+                    houseDimensions.height / 2, 
+                    0,
+                    materials.wallExterior
+                );
+                houseGroup.add(rightWall);
+                
+                // Front wall with door opening
+                // Left section
+                const frontWallLeft = createWallSection(
+                    (houseDimensions.width - frontDoorWidth) / 2, 
+                    houseDimensions.height, 
+                    houseDimensions.wallThickness,
+                    -houseDimensions.width / 4 - frontDoorWidth / 4, 
+                    houseDimensions.height / 2, 
+                    houseDimensions.length / 2,
+                    materials.wallExterior
+                );
+                houseGroup.add(frontWallLeft);
+                
+                // Right section
+                const frontWallRight = createWallSection(
+                    (houseDimensions.width - frontDoorWidth) / 2, 
+                    houseDimensions.height, 
+                    houseDimensions.wallThickness,
+                    houseDimensions.width / 4 + frontDoorWidth / 4, 
+                    houseDimensions.height / 2, 
+                    houseDimensions.length / 2,
+                    materials.wallExterior
+                );
+                houseGroup.add(frontWallRight);
+                
+                // Top section
+                const frontWallTop = createWallSection(
+                    frontDoorWidth, 
+                    houseDimensions.height - frontDoorHeight, 
+                    houseDimensions.wallThickness,
+                    0, 
+                    houseDimensions.height - (houseDimensions.height - frontDoorHeight) / 2, 
+                    houseDimensions.length / 2,
+                    materials.wallExterior
+                );
+                houseGroup.add(frontWallTop);
+                
+                // Near the beginning of the window.onload function, before setting up the game state:
+                // Check for saved game data
+                const savedGameData = sessionStorage.getItem('savedGameData');
+                let savedPosition = null;
+                let savedCameraRotation = null;
+                let savedGameProgress = null;
+                let savedInventoryItems = null;
+                let isContinuingSavedGame = false; // Flag to track if we're continuing from a saved game
+                
+                if (savedGameData) {
+                    try {
+                        const parsedData = JSON.parse(savedGameData);
+                        savedPosition = parsedData.position;
+                        savedCameraRotation = parsedData.cameraRotation;
+                        savedGameProgress = parsedData.gameProgress;
+                        savedInventoryItems = parsedData.inventoryItems;
+                        isContinuingSavedGame = true; // Set flag when loading saved data
+                        
+                        // Clear the saved data from session storage to prevent reloading on refresh
+                        sessionStorage.removeItem('savedGameData');
+                        
+                        console.log('Loaded saved game data');
+                    } catch (error) {
+                        console.error('Error parsing saved game data:', error);
+                    }
+                }
+                
+                // Add windows
+                function createWindow(width, height, x, y, z, rotationY) {
+                    const windowGroup = new THREE.Group();
+                    
+                    // Window glass
+                    const windowPane = new THREE.Mesh(
+                        new THREE.PlaneGeometry(width, height),
+                        materials.glass
+                    );
+                    windowPane.position.set(0, 0, 0.05);
+                    windowGroup.add(windowPane);
+                    
+                    // Window frame
+                    const frameWidth = 0.3;
+                    
+                    // Top frame
+                    const topFrame = new THREE.Mesh(
+                        new THREE.BoxGeometry(width + frameWidth * 2, frameWidth, 0.2),
+                        materials.woodDark
+                    );
+                    topFrame.position.set(0, height / 2 + frameWidth / 2, 0);
+                    windowGroup.add(topFrame);
+                    
+                    // Bottom frame
+                    const bottomFrame = new THREE.Mesh(
+                        new THREE.BoxGeometry(width + frameWidth * 2, frameWidth, 0.2),
+                        materials.woodDark
+                    );
+                    bottomFrame.position.set(0, -height / 2 - frameWidth / 2, 0);
+                    windowGroup.add(bottomFrame);
+                    
+                    // Left frame
+                    const leftFrame = new THREE.Mesh(
+                        new THREE.BoxGeometry(frameWidth, height, 0.2),
+                        materials.woodDark
+                    );
+                    leftFrame.position.set(-width / 2 - frameWidth / 2, 0, 0);
+                    windowGroup.add(leftFrame);
+                    
+                    // Right frame
+                    const rightFrame = new THREE.Mesh(
+                        new THREE.BoxGeometry(frameWidth, height, 0.2),
+                        materials.woodDark
+                    );
+                    rightFrame.position.set(width / 2 + frameWidth / 2, 0, 0);
+                    windowGroup.add(rightFrame);
+                    
+                    // Middle crossbar - horizontal
+                    const middleHBar = new THREE.Mesh(
+                        new THREE.BoxGeometry(width, frameWidth, 0.2),
+                        materials.woodDark
+                    );
+                    middleHBar.position.set(0, 0, 0);
+                    windowGroup.add(middleHBar);
+                    
+                    // Middle crossbar - vertical
+                    const middleVBar = new THREE.Mesh(
+                        new THREE.BoxGeometry(frameWidth, height, 0.2),
+                        materials.woodDark
+                    );
+                    middleVBar.position.set(0, 0, 0);
+                    windowGroup.add(middleVBar);
+                    
+                    // Position the window group
+                    windowGroup.position.set(x, y, z);
+                    windowGroup.rotation.y = rotationY || 0;
+                    
+                    return windowGroup;
+                }
+                
+                // Add windows to the house
+                // Front windows
+                const frontWindowLeft = createWindow(
+                    6, 5, 
+                    -12, 6, 
+                    houseDimensions.length / 2 + 0.1, 
+                    0
+                );
+                houseGroup.add(frontWindowLeft);
+                
+                const frontWindowRight = createWindow(
+                    6, 5, 
+                    12, 6, 
+                    houseDimensions.length / 2 + 0.1, 
+                    0
+                );
+                houseGroup.add(frontWindowRight);
+                
+                // Side windows
+                const leftWindowFront = createWindow(
+                    6, 5, 
+                    -houseDimensions.width / 2 - 0.1, 6, 
+                    15, 
+                    Math.PI / 2
+                );
+                houseGroup.add(leftWindowFront);
+                
+                const leftWindowBack = createWindow(
+                    6, 5, 
+                    -houseDimensions.width / 2 - 0.1, 6, 
+                    -15, 
+                    Math.PI / 2
+                );
+                houseGroup.add(leftWindowBack);
+                
+                const rightWindowFront = createWindow(
+                    6, 5, 
+                    houseDimensions.width / 2 + 0.1, 6, 
+                    15, 
+                    -Math.PI / 2
+                );
+                houseGroup.add(rightWindowFront);
+                
+                const rightWindowBack = createWindow(
+                    6, 5, 
+                    houseDimensions.width / 2 + 0.1, 6, 
+                    -15, 
+                    -Math.PI / 2
+                );
+                houseGroup.add(rightWindowBack);
+                
+                // Back windows
+                const backWindowLeft = createWindow(
+                    6, 5, 
+                    -12, 6, 
+                    -houseDimensions.length / 2 - 0.1, 
+                    Math.PI
+                );
+                houseGroup.add(backWindowLeft);
+                
+                const backWindowMiddle = createWindow(
+                    6, 5, 
+                    0, 6, 
+                    -houseDimensions.length / 2 - 0.1, 
+                    Math.PI
+                );
+                houseGroup.add(backWindowMiddle);
+                
+                const backWindowRight = createWindow(
+                    6, 5, 
+                    12, 6, 
+                    -houseDimensions.length / 2 - 0.1, 
+                    Math.PI
+                );
+                houseGroup.add(backWindowRight);
+                
+                // Furniture
+                // Table
+                const smallTableHeight = 0.8;
+                const smallTableTop = new THREE.Mesh(
+                    new THREE.BoxGeometry(2, 0.1, 1.2),
+                    materials.woodMedium
+                );
+                smallTableTop.position.set(-2, smallTableHeight, -2);
+                smallTableTop.castShadow = true;
+                houseGroup.add(smallTableTop);
+                
+                // Table legs
+                for (let x = -1; x <= 1; x += 2) {
+                    for (let z = -1; z <= 1; z += 2) {
+                        const tableLeg = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.05, 0.05, smallTableHeight),
+                            materials.woodDark
+                        );
+                        tableLeg.position.set(-2 + x * 0.9, smallTableHeight / 2, -2 + z * 0.5);
+                        tableLeg.castShadow = true;
+                        houseGroup.add(tableLeg);
+                    }
+                }
+                
+                // Chairs
+                function createChair(x, z, rotation) {
+                    const chairGroup = new THREE.Group();
+                    chairGroup.position.set(x, 0, z);
+                    chairGroup.rotation.y = rotation;
+                    
+                    // Seat
+                    const seat = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.6, 0.1, 0.6),
+                        materials.woodMedium
+                    );
+                    seat.position.y = 0.45;
+                    seat.castShadow = true;
+                    chairGroup.add(seat);
+                    
+                    // Backrest
+                    const back = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.6, 0.5, 0.1),
+                        materials.woodDark
+                    );
+                    back.position.set(0, 0.7, -0.25);
+                    back.castShadow = true;
+                    chairGroup.add(back);
+                    
+                    // Legs
+                    for (let i = -1; i <= 1; i += 2) {
+                        for (let j = -1; j <= 1; j += 2) {
+                            const leg = new THREE.Mesh(
+                                new THREE.CylinderGeometry(0.04, 0.04, 0.45),
+                                materials.woodDark
+                            );
+                            leg.position.set(i * 0.25, 0.225, j * 0.25);
+                            leg.castShadow = true;
+                            chairGroup.add(leg);
+                        }
+                    }
+                    
+                    return chairGroup;
+                }
+                
+                houseGroup.add(createChair(-2, -3, 0));  // Front
+                houseGroup.add(createChair(-2, -1, Math.PI));  // Back
+                houseGroup.add(createChair(-3, -2, Math.PI/2));  // Left
+                houseGroup.add(createChair(-1, -2, -Math.PI/2));  // Right
+                
+                // Bed
+                const smallBedFrame = new THREE.Mesh(
+                    new THREE.BoxGeometry(2, 0.3, 3),
+                    materials.woodMedium
+                );
+                smallBedFrame.position.set(3, 0.15, -2);
+                smallBedFrame.castShadow = true;
+                houseGroup.add(smallBedFrame);
+                
+                // Mattress
+                const smallMattress = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.8, 0.3, 2.8),
+                    materials.fabric
+                );
+                smallMattress.position.set(3, 0.45, -2);
+                smallMattress.castShadow = true;
+                houseGroup.add(smallMattress);
+                
+                // Pillow
+                const pillow = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.6, 0.2, 0.6),
+                    materials.fabric
+                );
+                pillow.position.set(3, 0.7, -3.1);
+                pillow.castShadow = true;
+                houseGroup.add(pillow);
+                
+                // Blanket
+                const smallBlanket = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.8, 0.1, 1.4),
+                    materials.fabric
+                );
+                smallBlanket.position.set(3, 0.65, -1.4);
+                smallBlanket.castShadow = true;
+                houseGroup.add(smallBlanket);
+                
+                // Bookshelf
+                const bookshelf = new THREE.Group();
+                bookshelf.position.set(3, 0, -houseDimensions.length / 2 + 0.6);
+                
+                // Bookshelf frame
+                const shelfFrame = new THREE.Mesh(
+                    new THREE.BoxGeometry(2, 2.5, 0.5),
+                    materials.woodDark
+                );
+                bookshelf.add(shelfFrame);
+                
+                // Bookshelf back
+                const shelfBack = new THREE.Mesh(
+                    new THREE.BoxGeometry(2, 2.5, 0.05),
+                    materials.woodDark
+                );
+                shelfBack.position.z = -0.225;
+                bookshelf.add(shelfBack);
+                
+                // Bookshelf sides
+                const leftSide = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.05, 2.5, 0.5),
+                    materials.woodDark
+                );
+                leftSide.position.x = -0.975;
+                bookshelf.add(leftSide);
+                
+                const rightSide = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.05, 2.5, 0.5),
+                    materials.woodDark
+                );
+                rightSide.position.x = 0.975;
+                bookshelf.add(rightSide);
+                
+                // Bookshelf shelves
+                for (let i = 0; i < 5; i++) {
+                    const shelf = new THREE.Mesh(
+                        new THREE.BoxGeometry(2, 0.05, 0.5),
+                        materials.woodDark
+                    );
+                    shelf.position.y = -1.25 + i * 0.625;
+                    bookshelf.add(shelf);
+                    
+                    // Add books on shelves
+                    if (i > 0) {
+                        const numBooks = Math.floor(Math.random() * 5) + 3;
+                        const shelfWidth = 1.9;
+                        const bookWidth = shelfWidth / numBooks;
+                        
+                        for (let j = 0; j < numBooks; j++) {
+                            if (Math.random() > 0.25) { // Some gaps in the shelves
+                                const bookHeight = 0.3 + Math.random() * 0.2;
+                                const book = new THREE.Mesh(
+                                    new THREE.BoxGeometry(bookWidth * 0.8, bookHeight, 0.2),
+                                    new THREE.MeshStandardMaterial({ 
+                                        color: new THREE.Color(
+                                            Math.random() * 0.8, 
+                                            Math.random() * 0.8, 
+                                            Math.random() * 0.8
+                                        ) 
+                                    })
+                                );
+                                book.position.set(
+                                    -0.95 + j * bookWidth + bookWidth / 2,
+                                    -1.25 + i * 0.625 + bookHeight / 2 + 0.025,
+                                    -0.1
+                                );
+                                book.castShadow = true;
+                                bookshelf.add(book);
+                            }
+                        }
+                    }
+                }
+                
+                houseGroup.add(bookshelf);
+                
+                // Add interior lighting
+                const pointLight = new THREE.PointLight(0xffbb77, 0.8, 15);
+                pointLight.position.set(0, houseDimensions.height - 0.5, 0);
+                pointLight.castShadow = true;
+                pointLight.shadow.mapSize.width = 1024;
+                pointLight.shadow.mapSize.height = 1024;
+                houseGroup.add(pointLight);
+                
+                // Add light "fixtures"
+                const lightFixture = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16),
+                    new THREE.MeshStandardMaterial({ color: 0xffcc88, emissive: 0xffcc88, emissiveIntensity: 0.75 })
+                );
+                lightFixture.position.copy(pointLight.position);
+                houseGroup.add(lightFixture);
+                
+                // Add the house to the scene
+                scene.add(houseGroup);
+                
+                // Add ground
+                const ground = new THREE.Mesh(
+                    new THREE.PlaneGeometry(100, 100),
+                    materials.ground
+                );
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                scene.add(ground);
+                
+                // Add trees
+                const treeGroup = new THREE.Group();
+                const treePositions = [
+                    { x: -20, z: -20 },
+                    { x: -20, z: 20 },
+                    { x: 20, z: -20 },
+                    { x: 20, z: 20 }
+                ];
+                
+                treePositions.forEach(pos => {
+                    const tree = createTree(pos.x, pos.z);
+                    treeGroup.add(tree);
+                });
+                
+                scene.add(treeGroup);
+                
+                // Add fog
+                scene.fog = new THREE.Fog(0x0a0a0a, 10, 50);
+                
+                // Add ambient light
+                const ambientLight = new THREE.AmbientLight(0x404040);
+                scene.add(ambientLight);
+                
+                // Add directional light
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                directionalLight.position.set(10, 20, 10);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 1024;
+                directionalLight.shadow.mapSize.height = 1024;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 50;
+                directionalLight.shadow.camera.left = -10;
+                directionalLight.shadow.camera.right = 10;
+                directionalLight.shadow.camera.top = 10;
+                directionalLight.shadow.camera.bottom = -10;
+                scene.add(directionalLight);
+                
+                // Add spotlight
+                const spotLight = new THREE.SpotLight(0xffffff, 1, 0, Math.PI / 4, 0.1, 2);
+                spotLight.position.set(0, 10, 0);
+                spotLight.castShadow = true;
+                spotLight.shadow.mapSize.width = 1024;
+                spotLight.shadow.mapSize.height = 1024;
+                spotLight.shadow.camera.near = 0.5;
+                spotLight.shadow.camera.far = 50;
+                scene.add(spotLight);
+                
+                // Add camera
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(0, 1.6, 5);
+                camera.lookAt(scene.position);
+                
+                // Add controls
+                controls = new THREE.PointerLockControls(camera, document.body);
+                
+                // Add renderer
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.body.appendChild(renderer.domElement);
+                
+                // Add event listeners
+                document.addEventListener('keydown', handleKeyDown);
+                document.addEventListener('keyup', handleKeyUp);
+                document.addEventListener('mousedown', handleMouseDown);
+                document.addEventListener('mouseup', handleMouseUp);
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('wheel', handleMouseWheel);
+                window.addEventListener('resize', handleWindowResize);
+                
+                // Add raycaster
+                raycaster = new THREE.Raycaster();
+                
+                // Add clock
+                clock = new THREE.Clock();
+                
+                // Add stats
+                stats = new Stats();
+                document.body.appendChild(stats.dom);
+                
+                // Add inventory panel
+                const inventoryPanel = document.createElement('div');
+                inventoryPanel.id = 'inventory-panel';
+                inventoryPanel.innerHTML = `
+                    <div id="inventory-title">Inventory</div>
+                    <div class="inventory-grid"></div>
+                    <div class="key-tip">Press <span class="key">I</span> to toggle inventory</div>
+                `;
+                document.body.appendChild(inventoryPanel);
+                
+                // Add pause menu
+                const pauseMenu = document.createElement('div');
+                pauseMenu.id = 'pause-menu';
+                pauseMenu.innerHTML = `
+                    <div class="menu-container">
+                        <h2>Paused</h2>
+                        <div class="menu-options">
+                            <button id="resume-game">Resume</button>
+                            <button id="save-quit">Save & Quit</button>
+                            <button id="restart-game">Restart</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(pauseMenu);
+                
+                // Add event listeners for pause menu buttons
+                document.getElementById('resume-game').addEventListener('click', resumeGame);
+                document.getElementById('save-quit').addEventListener('click', saveGameAndQuit);
+                document.getElementById('restart-game').addEventListener('click', restartGame);
+                
+                // Add event listener for inventory toggle
+                document.addEventListener('keydown', toggleInventory);
+                
+                // Add event listener for pause menu toggle
+                document.addEventListener('keydown', togglePauseMenu);
+                
+                // Add event listener for window blur
+                window.addEventListener('blur', handleWindowBlur);
+                
+                // Add event listener for window focus
+                window.addEventListener('focus', handleWindowFocus);
+                
+                // Add event listener for gamepad connection
+                window.addEventListener('gamepadconnected', handleGamepadConnected);
+                
+                // Add event listener for gamepad disconnection
+                window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
+                
+                // Add event listener for fullscreen change
+                document.addEventListener('fullscreenchange', handleFullscreenChange);
+                
+                // Add event listener for pointer lock change
+                document.addEventListener('pointerlockchange', handlePointerLockChange);
+                
+                // Add event listener for pointer lock error
+                document.addEventListener('pointerlockerror', handlePointerLockError);
+                
+                // Add event listener for visibility change
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+                
+                // Add event listener for page hide
+                document.addEventListener('pagehide', handlePageHide);
+                
+                // Add event listener for page show
+                document.addEventListener('pageshow', handlePageShow);
+                
+                // Add event listener for unload
+                window.addEventListener('unload', handleUnload);
+                
+                // Add event listener for beforeunload
+                window.addEventListener('beforeunload', handleBeforeUnload);
+                
+                // Add event listener for online status change
+                window.addEventListener('online', handleOnlineStatusChange);
+                window.addEventListener('offline', handleOnlineStatusChange);
+                
+                // Add event listener for device orientation change
+                window.addEventListener('deviceorientation', handleDeviceOrientationChange);
+                
+                // Add event listener for device motion change
+                window.addEventListener('devicemotion', handleDeviceMotionChange);
+                
+                // Add event listener for battery status change
+                window.addEventListener('batterystatus', handleBatteryStatusChange);
+                
+                // Add event listener for network status change
+                window.addEventListener('networkstatus', handleNetworkStatusChange);
+                
+                // Add event listener for connection status change
+                window.addEventListener('connectionstatus', handleConnectionStatusChange);
+                
+                // Add event listener for security policy violation
+                window.addEventListener('securitypolicyviolation', handleSecurityPolicyViolation);
+                
+                // Add event listener for resize
+                window.addEventListener('resize', handleResize);
+                
+                // Add event listener for orientation change
+                window.addEventListener('orientationchange', handleOrientationChange);
+                
+                // Add event listener for language change
+                window.addEventListener('languagechange', handleLanguageChange);
+                
+                // Add event listener for color scheme change
+                window.addEventListener('colorschemechange', handleColorSchemeChange);
+                
+                // Add event listener for time zone change
+                window.addEventListener('timezonechange', handleTimeZoneChange);
+                
+                // Add event listener for storage change
+                window.addEventListener('storage', handleStorageChange);
+                
+                // Add event listener for app install
+                window.addEventListener('appinstalled', handleAppInstall);
+                
+                // Add event listener for before install prompt
+                window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+                
+                // Add event listener for app update
+                window.addEventListener('appupdated', handleAppUpdate);
+                
+                // Add event listener for app badge
+                window.addEventListener('appbadge', handleAppBadge);
+                
+                // Add event listener for app visibility
+                window.addEventListener('appvisibility', handleAppVisibility);
+                
+                // Add event listener for app user model id
+                window.addEventListener('appusermodelid', handleAppUserModelId);
+                
+                // Add event listener for app command
+                window.addEventListener('appcommand', handleAppCommand);
+                
+                // Add event listener for app content loaded
+                window.addEventListener('appcontentloaded', handleAppContentLoaded);
+                
+                // Add event listener for app error
+                window.addEventListener('apperror', handleAppError);
+                
+                // Add event listener for app message
+                window.addEventListener('appmessage', handleAppMessage);
+                
+                // Add event listener for app request
+                window.addEventListener('apprequest', handleAppRequest);
+                
+                // Add event listener for app search
+                window.addEventListener('appsearch', handleAppSearch);
+                
+                // Add event listener for app title change
+                window.addEventListener('apptitlechange', handleAppTitleChange);
+                
+                // Add event listener for app voice change
+                window.addEventListener('appvoicechange', handleAppVoiceChange);
+                
+                // Add event listener for app wake
+                window.addEventListener('appwake', handleAppWake);
+                
+                // Add event listener for app cache
+                window.addEventListener('appcache', handleAppCache);
+                
+                // Add event listener for app install error
+                window.addEventListener('appinstallerror', handleAppInstallError);
+                
+                // Add event listener for app update error
+                window.addEventListener('appupdateerror', handleAppUpdateError);
+                
+                // Add event listener for app badge error
+                window.addEventListener('appbadgeerror', handleAppBadgeError);
+                
+                // Add event listener for app visibility error
+                window.addEventListener('appvisibilityerror', handleAppVisibilityError);
+                
+                // Add event listener for app user model id error
+                window.addEventListener('appusermodeliderror', handleAppUserModelIdError);
+                
+                // Add event listener for app command error
+                window.addEventListener('appcommanderror', handleAppCommandError);
+                
+                // Add event listener for app content loaded error
+                window.addEventListener('appcontentloadederror', handleAppContentLoadedError);
+                
+                // Add event listener for app error error
+                window.addEventListener('apperrorerror', handleAppErrorError);
+                
+                // Add event listener for app message error
+                window.addEventListener('appmessageerror', handleAppMessageError);
+                
+                // Add event listener for app request error
+                window.addEventListener('apprequesterror', handleAppRequestError);
+                
+                // Add event listener for app search error
+                window.addEventListener('appsearcherror', handleAppSearchError);
+                
+                // Add event listener for app title change error
+                window.addEventListener('apptitlechangeerror', handleAppTitleChangeError);
+                
+                // Add event listener for app voice change error
+                window.addEventListener('appvoicechangeerror', handleAppVoiceChangeError);
+                
+                // Add event listener for app wake error
+                window.addEventListener('appwakeerror', handleAppWakeError);
+                
+                // Add event listener for app cache error
+                window.addEventListener('appcacheerror', handleAppCacheError);
+                
+                // Add event listener for app install error error
+                window.addEventListener('appinstallerrorerror', handleAppInstallErrorError);
+                
+                // Add event listener for app update error error
+                window.addEventListener('appupdateerrorerror', handleAppUpdateErrorError);
+                
+                // Add event listener for app badge error error
+                window.addEventListener('appbadgeerrorerror', handleAppBadgeErrorError);
+                
+                // Add event listener for app visibility error error
+                window.addEventListener('appvisibilityerrorerror', handleAppVisibilityErrorError);
+                
+                // Add event listener for app user model id error error
+                window.addEventListener('appusermodeliderrorerror', handleAppUserModelIdErrorError);
+                
+                // Add event listener for app command error error
+                window.addEventListener('appcommanderrorerror', handleAppCommandErrorError);
+                
+                // Add event listener for app content loaded error error
+                window.addEventListener('appcontentloadederrorerror', handleAppContentLoadedErrorError);
+                
+                // Add event listener for app error error error
+                window.addEventListener('apperrorerrorerror', handleAppErrorErrorError);
+                
+                // Add event listener for app message error error
+                window.addEventListener('appmessageerrorerror', handleAppMessageErrorError);
+                
+                // Add event listener for app request error error
+                window.addEventListener('apprequesterrorerror', handleAppRequestErrorError);
+                
+                // Add event listener for app search error error
+                window.addEventListener('appsearcherrorerror', handleAppSearchErrorError);
+                
+                // Add event listener for app title change error error
+                window.addEventListener('apptitlechangeerrorerror', handleAppTitleChangeErrorError);
+                
+                // Add event listener for app voice change error error
+                window.addEventListener('appvoicechangeerrorerror', handleAppVoiceChangeErrorError);
+                
+                // Add event listener for app wake error error
+                window.addEventListener('appwakeerrorerror', handleAppWakeErrorError);
+                
+                // Add event listener for app cache error error
+                window.addEventListener('appcacheerrorerror', handleAppCacheErrorError);
+                
+                // Add event listener for app install error error error
+                window.addEventListener('appinstallerrorerrorerror', handleAppInstallErrorErrorError);
+                
+                // Add event listener for app update error error error
+                window.addEventListener('appupdateerrorerrorerror', handleAppUpdateErrorErrorError);
+                
+                // Add event listener for app badge error error error
+                window.addEventListener('appbadgeerrorerrorerror', handleAppBadgeErrorErrorError);
+                
+                // Add event listener for app visibility error error error
+                window.addEventListener('appvisibilityerrorerrorerror', handleAppVisibilityErrorErrorError);
+                
+                // Add event listener for app user model id error error error
+                window.addEventListener('appusermodeliderrorerrorerror', handleAppUserModelIdErrorErrorError);
+                
+                // Add event listener for app command error error error
+                window.addEventListener('appcommanderrorerrorerror', handleAppCommandErrorErrorError);
+                
+                // Add event listener for app content loaded error error error
+                window.addEventListener('appcontentloadederrorerrorerror', handleAppContentLoadedErrorErrorError);
+                
+                // Add event listener for app error error error error
+                window.addEventListener('apperrorerrorerrorerror', handleAppErrorErrorErrorError);
+                
+                // Add event listener for app message error error error
+                window.addEventListener('appmessageerrorerrorerror', handleAppMessageErrorErrorError);
+                
+                // Add event listener for app request error error error
+                window.addEventListener('apprequesterrorerrorerror', handleAppRequestErrorErrorError);
+                
+                // Add event listener for app search error error error
+                window.addEventListener('appsearcherrorerrorerror', handleAppSearchErrorErrorError);
+                
+                // Add event listener for app title change error error error
+                window.addEventListener('apptitlechangeerrorerrorerror', handleAppTitleChangeErrorErrorError);
+                
+                // Add event listener for app voice change error error error
+                window.addEventListener('appvoicechangeerrorerrorerror', handleAppVoiceChangeErrorErrorError);
+                
+                // Add event listener for app wake error error error
+                window.addEventListener('appwakeerrorerrorerror', handleAppWakeErrorErrorError);
+                
+                // Add event listener for app cache error error error
+                window.addEventListener('appcacheerrorerrorerror', handleAppCacheErrorErrorError);
+                
+                // Add event listener for app install error error error error
+                window.addEventListener('appinstallerrorerrorerrorerror', handleAppInstallErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error
+                window.addEventListener('appupdateerrorerrorerrorerror', handleAppUpdateErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerror', handleAppBadgeErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error
+                window.addEventListener('appcommanderrorerrorerrorerror', handleAppCommandErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error
+                window.addEventListener('appmessageerrorerrorerrorerror', handleAppMessageErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error
+                window.addEventListener('apprequesterrorerrorerrorerror', handleAppRequestErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error
+                window.addEventListener('appsearcherrorerrorerrorerror', handleAppSearchErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error
+                window.addEventListener('appwakeerrorerrorerrorerror', handleAppWakeErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error
+                window.addEventListener('appcacheerrorerrorerrorerror', handleAppCacheErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error error error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error error error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error error error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error error error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error error error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error error error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error error error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error error error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error error error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error error error error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error error error error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error error error error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error error error error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error error error error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error error error error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error error error error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error error error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error error error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error error error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error error error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error error error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error error error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error error error error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error error error error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error error error error error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error error error error error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error error error error error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error error error error error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error error error error error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error error error error error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error error error error error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error error error error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error error error error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error error error error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error error error error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error error error error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error error error error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error error error error error error error error error
+                window.addEventListener('appcontentloadederrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppContentLoadedErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app error error error error error error error error error error error error error error error
+                window.addEventListener('apperrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app message error error error error error error error error error error error error error error
+                window.addEventListener('appmessageerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppMessageErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app request error error error error error error error error error error error error error error
+                window.addEventListener('apprequesterrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppRequestErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app search error error error error error error error error error error error error error error
+                window.addEventListener('appsearcherrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppSearchErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app title change error error error error error error error error error error error error error error
+                window.addEventListener('apptitlechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppTitleChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app voice change error error error error error error error error error error error error error error
+                window.addEventListener('appvoicechangeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVoiceChangeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app wake error error error error error error error error error error error error error error
+                window.addEventListener('appwakeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppWakeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app cache error error error error error error error error error error error error error error
+                window.addEventListener('appcacheerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCacheErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app install error error error error error error error error error error error error error error error
+                window.addEventListener('appinstallerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppInstallErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app update error error error error error error error error error error error error error error error
+                window.addEventListener('appupdateerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUpdateErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app badge error error error error error error error error error error error error error error error
+                window.addEventListener('appbadgeerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppBadgeErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app visibility error error error error error error error error error error error error error error error
+                window.addEventListener('appvisibilityerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppVisibilityErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app user model id error error error error error error error error error error error error error error error
+                window.addEventListener('appusermodeliderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppUserModelIdErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app command error error error error error error error error error error error error error error error
+                window.addEventListener('appcommanderrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror', handleAppCommandErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorErrorError);
+                
+                // Add event listener for app content loaded error error error error error error error error error error error error error error error
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dystopian Escape</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Updated to ES modules version of Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+            }
+        }
+    </script>
+<script>
+    // Add event listeners to restart buttons to clear inventory
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.restart-game, #restart-game').forEach(button => {
+            button.addEventListener('click', function() {
+                // Clear localStorage before restarting
+                localStorage.removeItem('gameInventory');
+                localStorage.removeItem('hasBackpack');
+                console.log('Game restarting, inventory cleared');
+            });
+        });
+    });
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #eee;
+            overflow: hidden;
+        }
+        
+        #pause-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .menu-container {
+            background-color: rgba(30, 30, 40, 0.9);
+            border: 2px solid #73a1ff;
+            border-radius: 10px;
+            padding: 30px;
+            width: 350px;
+            box-shadow: 0 0 20px #73a1ff;
+            text-align: center;
+        }
+        
+        .menu-container h2 {
+            color: #73a1ff;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            text-shadow: 0 0 10px #73a1ff;
+        }
+        
+        .menu-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .menu-options button {
+            padding: 12px;
+            background-color: rgba(40, 40, 60, 0.9);
+            border: 1px solid #73a1ff;
+            color: #ccc;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+            border-radius: 5px;
+        }
+        
+        .menu-options button:hover {
+            background-color: rgba(60, 60, 100, 0.9);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(115, 161, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .menu-options button:active {
+            transform: translateY(0);
+        }
+        
+        #inventory-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 350px;
+            background-color: rgba(20, 20, 40, 0.8);
+            border: 2px solid #555;
+            border-radius: 10px;
+            display: none;
+            z-index: 100;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+        }
+
+        #inventory-title {
+            text-align: center;
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #666;
+            font-size: 18px;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px;
+            height: calc(100% - 60px);
+        }
+
+        .inventory-slot {
+            background-color: rgba(40, 40, 60, 0.7);
+            border: 1px solid #777;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .inventory-slot:hover {
+            background-color: rgba(60, 60, 90, 0.8);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(100, 100, 255, 0.5);
+        }
+
+        .inventory-slot img {
+            max-width: 80%;
+            max-height: 80%;
+            pointer-events: none;
+        }
+
+        .item-tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 10;
+        }
+
+        .inventory-slot:hover .item-tooltip {
+            opacity: 1;
+            z-index: 20;
+            bottom: -35px;
+            background-color: rgba(10, 10, 30, 0.9);
+            box-shadow: 0 0 8px rgba(100, 100, 255, 0.5);
+            color: #fff;
+            font-weight: bold;
+            border: 1px solid #555;
+        }
+
+        .item-count {
+            position: absolute;
+            bottom: 3px;
+            right: 5px;
+            font-size: 12px;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .key-tip {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 12px;
+            color: #aaa;
+        }
+    </style>
+<script>
+    // Add event listeners to restart buttons to clear inventory
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.restart-game, #restart-game').forEach(button => {
+            button.addEventListener('click', function() {
+                // Clear localStorage before restarting
+                localStorage.removeItem('gameInventory');
+                localStorage.removeItem('hasBackpack');
+                console.log('Game restarting, inventory cleared');
+            });
+        });
+    });
+    </script>
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading-screen">
+            <div class="loading-text">Loading Dystopian World...</div>
+        </div>
+        
+        <div id="pause-menu" style="display: none;">
+            <div class="menu-container">
+                <h2>Game Paused</h2>
+                <div class="menu-options">
+                    <button id="resume-game">Resume Game</button>
+                    <button id="restart-game">Start Over</button>
+                    <button id="save-quit">Save & Quit</button>
+                    <button id="return-home">Return to Home</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="info">
+            <div class="controls-info">
+                <p>WASD - Move | SPACE - Jump | MOUSE - Look | E - Inventory</p>
+            </div>
+        </div>
+        <div id="debug"></div>
+        <div id="inventory-panel">
+            <h2 id="inventory-title">Inventory</h2>
+            <div class="inventory-grid" id="inventory-grid"></div>
+            <div class="key-tip">Press E to close</div>
+        </div>
+
+        <!-- Audio elements for ambient sounds -->
+        <audio id="ambient-wind" preload="auto">
+            <source src="audio/ambient-wind.mp3" type="audio/mp3">
+        </audio>
+        
+    </div>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        
+        window.onload = function() {
+            const debugElement = document.getElementById('debug');
+            
+            try {
+                // Hide loading screen
+                document.getElementById('loading-screen').style.display = 'none';
+                
+                // Initialize audio
+                initAudioEffects();
+                
+                // Initialize event listeners for UI
+                initEventListeners();
+                
+                // Near the beginning of the window.onload function, before setting up the game state:
+                // Check for saved game data
+                const savedGameData = sessionStorage.getItem('savedGameData');
+                let savedPosition = null;
+                let savedCameraRotation = null;
+                let savedGameProgress = null;
+                let savedInventoryItems = null;
                 
                 if (savedGameData) {
                     try {
@@ -549,8 +2591,6 @@
                 scene.add(dirLight);
                 
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 5, 60); // Position camera behind player
-    camera.lookAt(0, 2, 0); // Look at where the player would be
                 
                 const renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -2222,8 +4262,6 @@
                 
                 // Position the player inside the house
                 const player = createLowPolyCharacter();
-    player.position.set(0, 1, 50); // Reset position
-    scene.add(player); // Ensure player is added to scene
                 player.position.set(0, 1, 25); // Near the front door, inside the house
                 scene.add(player);
                 
@@ -6457,8 +8495,6 @@ const rightMidArmGroup = new THREE.Group();
                 let lastFrameTime = 0;
                 function animate(time) {
                     requestAnimationFrame(animate);
-    
-    try {
                     
                     // Skip updating game state if paused
                     if (state.gamePaused) {
@@ -6490,10 +8526,6 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Render the scene
                     renderer.render(scene, camera);
-                    } catch (err) {
-        console.error("Animation error in game.html:", err);
-        document.getElementById("debug").textContent = "Error: " + err.message;
-    }
                 }
                 
                 animate(0);
@@ -7344,22 +9376,6 @@ const rightMidArmGroup = new THREE.Group();
                 
                 // Start the intro cutscene
                 function startIntroCutscene() {
-    // Skip cutscene if player is continuing from a save and not at spawn position
-    if (savedPosition && 
-        (Math.abs(savedPosition.x) > 5 || Math.abs(savedPosition.z) > 5)) {
-        console.log("Player continuing from save - skipping intro cutscene");
-        return; // Skip the cutscene entirely
-    }
-    
-    cutsceneActive = true;
-    // Skip cutscene if player is continuing from a save and not at spawn position
-    if (savedPosition && 
-        (Math.abs(savedPosition.x) > 5 || Math.abs(savedPosition.z) > 5)) {
-        console.log("Player continuing from save - skipping intro cutscene");
-        return; // Skip the cutscene entirely
-    }
-    
-    cutsceneActive = true;
                     cutsceneActive = true;
                     cutsceneStep = 0;
                     cutsceneTimer = 0;
@@ -8143,28 +10159,14 @@ const rightMidArmGroup = new THREE.Group();
                 }
                 
                 // Start the intro cutscene instead of immediately playing
+                if (!isContinuingSavedGame) {
                 startIntroCutscene();
+                } else {
+                    console.log("Continuing saved game - skipping intro cutscene");
+                };
 
                 // Check game story progress based on player position
                 function checkStoryProgress(position) {
-    // Skip triggers if player loaded from a save and is already away from spawn
-    if (savedPosition && 
-        (Math.abs(position.x) > 5 || Math.abs(position.z) > 5)) {
-        gameProgress.borderReached = true; // Prevent border trigger
-        console.log("Player continuing from save - skipping story triggers");
-        return;
-    }
-    
-    // Only check for progress if we're in a phase where events can trigger
-    // Skip triggers if player loaded from a save and is already away from spawn
-    if (savedPosition && 
-        (Math.abs(position.x) > 5 || Math.abs(position.z) > 5)) {
-        gameProgress.borderReached = true; // Prevent border trigger
-        console.log("Player continuing from save - skipping story triggers");
-        return;
-    }
-    
-    // Only check for progress if we're in a phase where events can trigger
                     // Only check for progress if we're in a phase where events can trigger
                     if (gameProgress.storyPhase !== 'escape' || gameProgress.borderReached) {
                         return;
@@ -8201,22 +10203,6 @@ const rightMidArmGroup = new THREE.Group();
                 
                 // Trigger a story event at the border
                 function triggerBorderEncounter() {
-    // Skip for continued games
-    if (savedPosition && 
-        (Math.abs(savedPosition.x) > 5 || Math.abs(savedPosition.z) > 5)) {
-        console.log("Player continuing from save - skipping border encounter");
-        return;
-    }
-    
-    // Prevent multiple trigger
-    // Skip for continued games
-    if (savedPosition && 
-        (Math.abs(savedPosition.x) > 5 || Math.abs(savedPosition.z) > 5)) {
-        console.log("Player continuing from save - skipping border encounter");
-        return;
-    }
-    
-    // Prevent multiple trigger
                     // Prevent multiple trigger
                     if (gameProgress.eventInProgress) return;
                     gameProgress.eventInProgress = true;
