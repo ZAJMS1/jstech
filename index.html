@@ -37,7 +37,14 @@
             text-shadow: 0 0 5px #444;
         }
         
-        .play-button {
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .play-button, .continue-button, .new-game-button {
             padding: 1rem 3rem;
             font-size: 1.5rem;
             background-color: transparent;
@@ -50,17 +57,36 @@
             letter-spacing: 0.3rem;
             position: relative;
             overflow: hidden;
-            margin-top: 2rem;
         }
         
-        .play-button:hover {
+        .play-button:hover, .continue-button:hover, .new-game-button:hover {
             background-color: rgba(115, 161, 255, 0.2);
             box-shadow: 0 0 15px #73a1ff;
             transform: scale(1.05);
         }
         
-        .play-button:active {
+        .play-button:active, .continue-button:active, .new-game-button:active {
             transform: scale(0.98);
+        }
+        
+        .continue-button {
+            border-color: #a173ff;
+            color: #a173ff;
+        }
+        
+        .continue-button:hover {
+            background-color: rgba(161, 115, 255, 0.2);
+            box-shadow: 0 0 15px #a173ff;
+        }
+        
+        .new-game-button {
+            border-color: #ff7373;
+            color: #ff7373;
+        }
+        
+        .new-game-button:hover {
+            background-color: rgba(255, 115, 115, 0.2);
+            box-shadow: 0 0 15px #ff7373;
         }
         
         @keyframes flicker {
@@ -100,18 +126,36 @@
                 opacity: 0;
             }
         }
+        
+        .game-options {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="home-container">
         <h1 class="title">Dystopian Escape</h1>
         <h2 class="subtitle">Enter a world of shadows and survival</h2>
-        <a href="game.html">
-            <button class="play-button">
+        
+        <div class="button-container">
+            <!-- Default Play Button (shown when loading) -->
+            <button id="play-button" class="play-button">
                 Play Now
                 <div class="glitch-effect"></div>
             </button>
-        </a>
+            
+            <!-- Game Options (Continue/New Game - shown if save exists) -->
+            <div id="game-options" class="game-options">
+                <button id="continue-button" class="continue-button">
+                    Continue
+                    <div class="glitch-effect"></div>
+                </button>
+                <button id="new-game-button" class="new-game-button">
+                    New Game
+                    <div class="glitch-effect"></div>
+                </button>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -128,7 +172,88 @@
                     }, 100);
                 }
             }, 500);
+            
+            // Check if user has a saved game
+            checkForSavedGame();
+            
+            // Default play button starts new game
+            document.getElementById('play-button').addEventListener('click', function() {
+                startNewGame();
+            });
+            
+            // Continue button loads saved game
+            document.getElementById('continue-button').addEventListener('click', function() {
+                continueGame();
+            });
+            
+            // New game button starts fresh game
+            document.getElementById('new-game-button').addEventListener('click', function() {
+                startNewGame();
+            });
         });
+        
+        // Check for saved games
+        function checkForSavedGame() {
+            fetch('/api/save-exists')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.hasSave) {
+                        // Show continue/new game options if save exists
+                        document.getElementById('play-button').style.display = 'none';
+                        document.getElementById('game-options').style.display = 'flex';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking for saved game:', error);
+                });
+        }
+        
+        // Continue the saved game
+        function continueGame() {
+            fetch('/api/load-game')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Navigate to the saved page
+                        const savedPage = data.saveData.currentPage || 'game.html';
+                        
+                        // Store saved data in sessionStorage so it can be accessed by the game page
+                        sessionStorage.setItem('savedGameData', JSON.stringify(data.saveData));
+                        
+                        // Navigate to the saved page
+                        window.location.href = savedPage;
+                    } else {
+                        console.error('Error loading saved game:', data.error);
+                        alert('Failed to load saved game. Starting new game instead.');
+                        startNewGame();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading saved game:', error);
+                    alert('Error loading saved game. Starting new game instead.');
+                    startNewGame();
+                });
+        }
+        
+        // Start a new game
+        function startNewGame() {
+            // Delete any existing saved game
+            fetch('/api/delete-save', {
+                method: 'DELETE'
+            })
+            .then(() => {
+                // Clear any saved game data in session storage
+                sessionStorage.removeItem('savedGameData');
+                
+                // Navigate to game.html
+                window.location.href = 'game.html';
+            })
+            .catch(error => {
+                console.error('Error deleting saved game:', error);
+                // Continue to game page even if delete fails
+                window.location.href = 'game.html';
+            });
+        }
     </script>
 </body>
 </html>

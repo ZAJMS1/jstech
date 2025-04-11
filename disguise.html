@@ -215,6 +215,7 @@
                 <div class="menu-options">
                     <button id="resume-game">Resume Game</button>
                     <button id="restart-game">Start Over</button>
+                    <button id="save-quit">Save & Quit</button>
                     <button id="return-home">Return to Home</button>
                 </div>
             </div>
@@ -4268,13 +4269,13 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Add title
                     const title = document.createElement('h2');
-                    title.textContent = 'Border Checkpoint';
+                    title.textContent = 'Worker Disguise';
                     title.style.marginBottom = '20px';
                     content.appendChild(title);
                     
                     // Add description
                     const description = document.createElement('p');
-                    description.innerHTML = 'You\'ve reached the city limits. Ahead, you see the heavily guarded border checkpoint.<br><br>Armed guards patrol the perimeter, and surveillance drones hover overhead. Getting past this won\'t be easy.';
+                    description.innerHTML = 'You\'ve chosen to use a worker disguise to get through the checkpoint. The forged worker ID in your pocket feels like a ticking time bomb, but it\'s your best chance at passing inspection. Remember to act natural when approaching the guards - your success depends on looking the part of an ordinary factory worker.';
                     description.style.marginBottom = '30px';
                     description.style.lineHeight = '1.5';
                     content.appendChild(description);
@@ -4289,10 +4290,11 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Option 1: Try to sneak past
                     const sneakOption = document.createElement('button');
-                    sneakOption.textContent = 'Try to sneak past the guards';
+    sneakOption.textContent = 'Create a distraction with staged accident';
+                    /sneakOption\.textContent = '[^']*';/
                     Object.assign(sneakOption.style, {
                         padding: '15px 20px',
-                        backgroundColor: '#446688',
+                        backgroundColor: '#997755',
                         color: 'white',
                         border: 'none',
                         borderRadius: '5px',
@@ -4301,16 +4303,17 @@ const rightMidArmGroup = new THREE.Group();
                     });
                     sneakOption.addEventListener('click', function() {
                         // Redirect to sneak page
-                        window.location.href = '/sneak';
+                        window.location.href = '/checkpoint'
                     });
                     optionsContainer.appendChild(sneakOption);
                     
                     // Option 2: Look for alternative route
                     const alternativeOption = document.createElement('button');
-                    alternativeOption.textContent = 'Search for an alternative route';
+    alternativeOption.textContent = 'Befriend a guard for inside help';
+                    /alternativeOption\.textContent = '[^']*';/
                     Object.assign(alternativeOption.style, {
                         padding: '15px 20px',
-                        backgroundColor: '#557755',
+                        backgroundColor: '#557799',
                         color: 'white',
                         border: 'none',
                         borderRadius: '5px',
@@ -4319,14 +4322,14 @@ const rightMidArmGroup = new THREE.Group();
                     });
                     alternativeOption.addEventListener('click', function() {
                         // Redirect to alternative route page
-                        window.location.href = '/alternative';
+                        window.location.href = '/guard'
                     });
                     optionsContainer.appendChild(alternativeOption);
                     
                     // Option 3: Show crowbar option if available
                     if (gameProgress.hasBackpack && window.playerInventory && window.playerInventory.hasItem('Crowbar')) {
                         const crowbarOption = document.createElement('button');
-                        crowbarOption.textContent = 'Use crowbar to break into the sewers';
+                        crowbarOption.textContent = 'Use crowbar to break into service tunnels';
                         Object.assign(crowbarOption.style, {
                             padding: '15px 20px',
                             backgroundColor: '#775555',
@@ -4338,7 +4341,7 @@ const rightMidArmGroup = new THREE.Group();
                         });
                         crowbarOption.addEventListener('click', function() {
                             // Redirect to disguise page
-                            window.location.href = '/disguise';
+                            window.location.href = '/accident'
                         });
                         optionsContainer.appendChild(crowbarOption);
                     }
@@ -4375,7 +4378,7 @@ const rightMidArmGroup = new THREE.Group();
     instructions.style.display = "";
     
     // Display disguise path message
-    displayMessage("You've acquired a worker disguise. Try to blend in at the checkpoint.", 5000);
+    displayMessage("You've acquired a worker disguise. You'll need to act natural to pass inspection.", 5000);
 
     
     // Ensure inventory is displayed when hasBackpack is true

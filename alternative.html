@@ -204,6 +204,69 @@
     </style>
 </head>
 <body>
+    <!-- Direct Knife Popup -->
+    <div id="direct-knife-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 10000; display: none; justify-content: center; align-items: center;">
+        <div id="direct-knife-popup" style="background-color: rgba(20, 20, 40, 0.95); color: white; padding: 30px; border-radius: 10px; text-align: center; z-index: 10001; border: 2px solid #73a1ff; box-shadow: 0 0 20px #73a1ff; width: 400px; max-width: 90%;">
+            <h2 style="color: #73a1ff; margin-bottom: 20px;">Found Item</h2>
+            <p style="margin-bottom: 25px; line-height: 1.5;">You notice a pocket knife on the ground. It might be useful for cutting through obstacles.</p>
+            <div style="display: flex; justify-content: space-between; gap: 15px;">
+                <button id="take-knife-btn" style="padding: 12px 20px; background-color: #3b6c4a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; flex: 1;">Take Knife</button>
+                <button id="leave-knife-btn" style="padding: 12px 20px; background-color: #6c3b3b; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; flex: 1;">Leave It</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Direct script to handle knife popup choices with delay
+        document.addEventListener('DOMContentLoaded', function() {
+            const backdrop = document.getElementById('direct-knife-backdrop');
+            const takeButton = document.getElementById('take-knife-btn');
+            const leaveButton = document.getElementById('leave-knife-btn');
+            
+            if (!backdrop || !takeButton || !leaveButton) {
+                console.error('Knife popup elements not found');
+                return;
+            }
+            
+            takeButton.addEventListener('click', function() {
+                // Add knife to inventory if playerInventory exists
+                if (window.playerInventory) {
+                    window.playerInventory.addItem('Pocket Knife', 'A small but sharp knife, useful for cutting through various materials.');
+                }
+                // Save choice to localStorage
+                localStorage.setItem('hasKnife', 'true');
+                // Hide popup with fade out effect
+                backdrop.style.opacity = '0';
+                setTimeout(() => {
+                    backdrop.style.display = 'none';
+                }, 500);
+            });
+            
+            leaveButton.addEventListener('click', function() {
+                // Set flag to remove fence option
+                localStorage.setItem('hasKnife', 'false');
+                // Hide popup with fade out effect
+                backdrop.style.opacity = '0';
+                setTimeout(() => {
+                    backdrop.style.display = 'none';
+                }, 500);
+            });
+            
+            // Show the popup after a 2 second delay
+            setTimeout(() => {
+                // Add transition for smooth appearance
+                backdrop.style.transition = 'opacity 0.5s ease-in-out';
+                backdrop.style.opacity = '0';
+                backdrop.style.display = 'flex';
+                
+                // Force reflow then fade in
+                setTimeout(() => {
+                    backdrop.style.opacity = '1';
+                }, 50);
+            }, 2000); // 2 second delay
+        });
+    </script>
+
     <div id="game-container">
         <div id="loading-screen">
             <div class="loading-text">Loading Dystopian World...</div>
@@ -4268,13 +4331,15 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Add title
                     const title = document.createElement('h2');
-                    title.textContent = 'Border Checkpoint';
+                    title.textContent = 'Underground Passage';
+
                     title.style.marginBottom = '20px';
                     content.appendChild(title);
                     
                     // Add description
                     const description = document.createElement('p');
-                    description.innerHTML = 'You\'ve reached the city limits. Ahead, you see the heavily guarded border checkpoint.<br><br>Armed guards patrol the perimeter, and surveillance drones hover overhead. Getting past this won\'t be easy.';
+                    description.innerHTML = 'You\'ve discovered rumors of an abandoned maintenance tunnel that runs beneath the border wall. Finding the entrance won\'t be easy, and there\'s no telling what dangers lurk below. The tunnel might be collapsed, flooded, or worse - but it could be your only chance to escape undetected.';
+
                     description.style.marginBottom = '30px';
                     description.style.lineHeight = '1.5';
                     content.appendChild(description);
@@ -4289,7 +4354,27 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Option 1: Try to sneak past
                     const sneakOption = document.createElement('button');
-                    sneakOption.textContent = 'Try to sneak past the guards';
+                    /sneakOption\.textContent = '[^']*';/
+                    Object.assign(sneakOption.style, {
+                        padding: '15px 20px',
+                        backgroundColor: '#885577',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    sneakOption.addEventListener('click', function() {
+                        // Redirect to sneak page
+                        window.location.href = '/tunnels';
+                    });
+                    optionsContainer.appendChild(sneakOption);
+                    
+                    // Option 2: Look for alternative route
+                    const alternativeOption = document.createElement('button');
+    alternativeOption.textContent = 'Explore abandoned maintenance tunnels';
+
+                    /sneakOption\.textContent = '[^']*';/
                     Object.assign(sneakOption.style, {
                         padding: '15px 20px',
                         backgroundColor: '#446688',
@@ -4301,16 +4386,36 @@ const rightMidArmGroup = new THREE.Group();
                     });
                     sneakOption.addEventListener('click', function() {
                         // Redirect to sneak page
-                        window.location.href = '/sneak';
+                        window.location.href = '/tunnels'
                     });
                     optionsContainer.appendChild(sneakOption);
                     
                     // Option 2: Look for alternative route
-                    const alternativeOption = document.createElement('button');
-                    alternativeOption.textContent = 'Search for an alternative route';
+                    // Reusing existing alternativeOption
+                    /alternativeOption\.textContent = '[^']*';/
+                    
+    sneakOption.textContent = 'Ride supply truck through delivery entrance';
+Object.assign(sneakOption.style, {
+                        padding: '15px 20px',
+                        backgroundColor: '#446688',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    sneakOption.addEventListener('click', function() {
+                        // Redirect to sneak page
+                        window.location.href = '/truck'
+                    });
+                    optionsContainer.appendChild(sneakOption);
+                    
+                    // Option 2: Look for alternative route
+                    // Reusing existing alternativeOption
+                    /alternativeOption\.textContent = '[^']*';/
                     Object.assign(alternativeOption.style, {
                         padding: '15px 20px',
-                        backgroundColor: '#557755',
+                        backgroundColor: '#558855',
                         color: 'white',
                         border: 'none',
                         borderRadius: '5px',
@@ -4326,10 +4431,10 @@ const rightMidArmGroup = new THREE.Group();
                     // Option 3: Show crowbar option if available
                     if (gameProgress.hasBackpack && window.playerInventory && window.playerInventory.hasItem('Crowbar')) {
                         const crowbarOption = document.createElement('button');
-                        crowbarOption.textContent = 'Use crowbar to break into the sewers';
+                        crowbarOption.textContent = 'Cut through fence at unguarded section';
                         Object.assign(crowbarOption.style, {
                             padding: '15px 20px',
-                            backgroundColor: '#775555',
+                            backgroundColor: '#778855',
                             color: 'white',
                             border: 'none',
                             borderRadius: '5px',
@@ -4338,9 +4443,15 @@ const rightMidArmGroup = new THREE.Group();
                         });
                         crowbarOption.addEventListener('click', function() {
                             // Redirect to disguise page
-                            window.location.href = '/disguise';
+                            window.location.href = '/fence'
                         });
-                        optionsContainer.appendChild(crowbarOption);
+                        // Only show fence cutting option if player has knife
+        if (localStorage.getItem('hasKnife') !== 'false') {
+            // Only show fence cutting option if player has knife
+                        if (localStorage.getItem('hasKnife') !== 'false') {
+                            optionsContainer.appendChild(crowbarOption);
+                        }
+        }
                     }
                     
                     // Add options to content
@@ -4360,6 +4471,54 @@ const rightMidArmGroup = new THREE.Group();
                 
                 // Add specific items for this scenario
                 document.addEventListener('DOMContentLoaded', function() {
+    
+    
+    // Make sure the knife prompt is visible and appears on top of everything
+    // Use setTimeout to ensure it's added after all other elements
+    setTimeout(() => {
+        // Force the prompt to be visible
+        knifePromptContainer.style.zIndex = '9999';
+        
+        // Add a backdrop to make it more visible
+        const backdrop = document.createElement('div');
+        backdrop.id = 'knife-prompt-backdrop';
+        Object.assign(backdrop.style, {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: '9998'
+        });
+        document.body.insertBefore(backdrop, knifePromptContainer);
+        
+        // Add a close event for the backdrop
+        backdrop.addEventListener('click', function(e) {
+            if (e.target === backdrop) {
+                // If they click outside, default to not taking the knife
+                localStorage.setItem('hasKnife', 'false');
+                backdrop.remove();
+                knifePromptContainer.style.display = 'none';
+            }
+        });
+        
+        // Update button event handlers to remove backdrop
+        const yesButton = knifePromptContainer.querySelector('button:first-of-type');
+        const noButton = knifePromptContainer.querySelector('button:last-of-type');
+        
+        const originalYesHandler = yesButton.onclick;
+        yesButton.onclick = function() {
+            backdrop.remove();
+            if (originalYesHandler) originalYesHandler.call(this);
+        };
+        
+        const originalNoHandler = noButton.onclick;
+        noButton.onclick = function() {
+            backdrop.remove();
+            if (originalNoHandler) originalNoHandler.call(this);
+        };
+    }, 500);
                     // Unlock controls immediately
                     blocker.style.display = 'flex';
                     instructions.style.display = '';
@@ -4370,7 +4529,7 @@ const rightMidArmGroup = new THREE.Group();
     instructions.style.display = "";
     
     // Display alternative path message
-    displayMessage("You've chosen the alternative route. Find the underground passage.", 5000);
+    displayMessage("You're searching for the underground passage. Look for hidden entrances in the area.", 5000);
 
     
     // Ensure inventory is displayed when hasBackpack is true
@@ -4483,6 +4642,15 @@ const rightMidArmGroup = new THREE.Group();
                         addItem: function(name, description) {
                             // Check if item already exists to prevent duplicates
                             if (!this.hasItem(name)) {
+                                // Check if inventory is at capacity (3 items)
+                                const activeItems = this.items.filter(item => !item.used);
+                                if (activeItems.length >= 3) {
+                                    // Inventory full - show item limit popup
+                                    this.showItemLimitPopup(name, description);
+                                    return false;
+                                }
+                                
+                                // Add item as normal
                                 this.items.push({
                                     name: name,
                                     description: description,
@@ -4490,7 +4658,155 @@ const rightMidArmGroup = new THREE.Group();
                                 });
                                 this.saveInventory();
                                 this.updateUI();
+                                return true;
                             }
+                            return false;
+                        },
+                        
+                        showItemLimitPopup: function(newItemName, newItemDescription) {
+                            // Create item limit popup
+                            const inventoryLimitContainer = document.createElement('div');
+                            inventoryLimitContainer.id = 'inventory-limit-popup';
+                            
+                            // Set styles for the container
+                            Object.assign(inventoryLimitContainer.style, {
+                                position: 'fixed',
+                                top: '0',
+                                left: '0',
+                                width: '100%',
+                                height: '100%',
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                zIndex: '10000',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                            });
+                            
+                            // Create popup content
+                            const popupContent = document.createElement('div');
+                            Object.assign(popupContent.style, {
+                                backgroundColor: 'rgba(20, 20, 40, 0.95)',
+                                color: 'white',
+                                padding: '30px',
+                                borderRadius: '10px',
+                                maxWidth: '500px',
+                                width: '80%',
+                                border: '2px solid #73a1ff',
+                                boxShadow: '0 0 20px #73a1ff'
+                            });
+                            
+                            // Add title and description
+                            const title = document.createElement('h2');
+                            title.textContent = 'Inventory Full';
+                            title.style.color = '#73a1ff';
+                            title.style.marginBottom = '15px';
+                            
+                            const description = document.createElement('p');
+                            description.textContent = 'You found: ' + newItemName + ' - ' + newItemDescription;
+                            description.style.marginBottom = '15px';
+                            
+                            const limitText = document.createElement('p');
+                            limitText.textContent = 'Your inventory is full (maximum 3 items). You can either leave this item behind or drop something else to make room.';
+                            limitText.style.marginBottom = '25px';
+                            
+                            // Create item list for dropping
+                            const itemListContainer = document.createElement('div');
+                            itemListContainer.style.marginBottom = '20px';
+                            
+                            const itemListTitle = document.createElement('h3');
+                            itemListTitle.textContent = 'Choose an item to drop:';
+                            itemListTitle.style.marginBottom = '10px';
+                            
+                            const itemList = document.createElement('div');
+                            itemList.style.display = 'flex';
+                            itemList.style.flexDirection = 'column';
+                            itemList.style.gap = '10px';
+                            
+                            // Get active items
+                            const activeItems = this.items.filter(item => !item.used);
+                            
+                            // Add each item as a button
+                            activeItems.forEach((item, index) => {
+                                const itemButton = document.createElement('button');
+                                itemButton.textContent = item.name + ' - ' + item.description;
+                                Object.assign(itemButton.style, {
+                                    padding: '10px',
+                                    backgroundColor: '#3b546c',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    textAlign: 'left'
+                                });
+                                
+                                // Add hover effect
+                                itemButton.addEventListener('mouseover', function() {
+                                    this.style.backgroundColor = '#4c6580';
+                                });
+                                itemButton.addEventListener('mouseout', function() {
+                                    this.style.backgroundColor = '#3b546c';
+                                });
+                                
+                                // Add click event to drop this item and pick up the new one
+                                itemButton.addEventListener('click', () => {
+                                    // Mark this item as dropped/used
+                                    this.items[this.items.indexOf(item)].used = true;
+                                    
+                                    // Add the new item
+                                    this.items.push({
+                                        name: newItemName,
+                                        description: newItemDescription,
+                                        used: false
+                                    });
+                                    
+                                    // Save inventory and update UI
+                                    this.saveInventory();
+                                    this.updateUI();
+                                    
+                                    // Close popup
+                                    inventoryLimitContainer.remove();
+                                });
+                                
+                                itemList.appendChild(itemButton);
+                            });
+                            
+                            // Add "Leave it" button
+                            const buttonContainer = document.createElement('div');
+                            buttonContainer.style.display = 'flex';
+                            buttonContainer.style.justifyContent = 'space-between';
+                            buttonContainer.style.marginTop = '20px';
+                            
+                            const leaveButton = document.createElement('button');
+                            leaveButton.textContent = 'Leave ' + newItemName;
+                            Object.assign(leaveButton.style, {
+                                padding: '12px 20px',
+                                backgroundColor: '#6c3b3b',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '5px',
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                flex: '1',
+                                marginRight: '10px'
+                            });
+                            leaveButton.addEventListener('click', () => {
+                                inventoryLimitContainer.remove();
+                            });
+                            
+                            // Assemble the popup
+                            itemListContainer.appendChild(itemListTitle);
+                            itemListContainer.appendChild(itemList);
+                            
+                            popupContent.appendChild(title);
+                            popupContent.appendChild(description);
+                            popupContent.appendChild(limitText);
+                            popupContent.appendChild(itemListContainer);
+                            
+                            buttonContainer.appendChild(leaveButton);
+                            popupContent.appendChild(buttonContainer);
+                            
+                            inventoryLimitContainer.appendChild(popupContent);
+                            document.body.appendChild(inventoryLimitContainer);
                         },
                         
                         useItem: function(index) {
@@ -5076,5 +5392,6 @@ const rightMidArmGroup = new THREE.Group();
         };
 
     </script>
+
 </body>
 </html>
