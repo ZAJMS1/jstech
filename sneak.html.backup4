@@ -245,28 +245,6 @@
         import * as THREE from 'three';
         
         window.onload = function() {
-                // Initialize saved position
-                let savedPosition = null;
-                
-                // Load saved position if available
-                try {
-                    const savedData = localStorage.getItem('gameData');
-                    if (savedData) {
-                        const parsedData = JSON.parse(savedData);
-                        if (parsedData && parsedData.position) {
-                            savedPosition = parsedData.position;
-                            console.log("Loaded saved position:", savedPosition);
-                        }
-                    // Also restore camera rotation if available
-                    if (parsedData && parsedData.cameraRotation) {
-                        // Store to be applied after state initialization
-                        window.savedCameraRotation = parsedData.cameraRotation;
-                        console.log("Loaded saved camera rotation:", parsedData.cameraRotation);
-                    }
-                    }
-                } catch (err) {
-                    console.error("Error loading saved position:", err);
-                }
             const debugElement = document.getElementById('debug');
             
             try {
@@ -285,7 +263,7 @@
                     playerVelocity: new THREE.Vector3(),
                     playerDirection: new THREE.Vector3(),
                     cameraOffset: new THREE.Vector3(0, 3, 7),
-                    cameraRotation: window.savedCameraRotation || { x: 0, y: 0 },
+                    cameraRotation: { x: 0, y: 0 },
                     cameraMode: 'free', // Default camera mode: 'free' or 'shiftlock'
                     rightMouseDown: false,
                     mousePosition: { x: 0, y: 0 },
@@ -534,8 +512,6 @@
                 scene.add(dirLight);
                 
                 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 5, 60); // Position camera behind player
-    camera.lookAt(0, 2, 0); // Look at where the player would be
                 
                 const renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1048,8 +1024,6 @@
                 
                 // Position the player inside the house
                 const player = createLowPolyCharacter();
-    player.position.set(0, 1, 50); // Reset position
-    scene.add(player); // Ensure player is added to scene
                 player.position.set(0, 1, 50); // Starting position adjusted (outside)
                 scene.add(player);
                 
@@ -3328,9 +3302,7 @@ const rightMidArmGroup = new THREE.Group();
                 
                 let lastFrameTime = 0;
                 function animate(time) {
-    requestAnimationFrame(animate);
-    
-    try {
+                    requestAnimationFrame(animate);
                     
                     // Skip updating game state if paused
                     if (state.gamePaused) {
@@ -3362,11 +3334,7 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Render the scene
                     renderer.render(scene, camera);
-                    } catch (err) {
-        console.error("Animation error in sneak.html:", err);
-        document.getElementById("debug").textContent = "Error: " + err.message;
-    }
-}
+                }
                 
                 animate(0);
                 
@@ -4217,21 +4185,37 @@ const rightMidArmGroup = new THREE.Group();
                 // Disable functions that trigger cutscenes
                 function startIntroCutscene() {
     // Skip cutscene if player is continuing from a save and not at spawn position
-    if (typeof savedPosition !== "undefined" && savedPosition && 
+    if (savedPosition && 
         (Math.abs(savedPosition.x) > 5 || Math.abs(savedPosition.z) > 5)) {
         console.log("Player continuing from save - skipping intro cutscene");
         return; // Skip the cutscene entirely
     }
     
     cutsceneActive = true;
+    // Check if player has already seen intron    const savedGameProgress = window.savedGameProgress || {};n    if (savedGameProgress.introCutsceneWatched) {n        console.log("Skipping intro cutscene - already watched in previous session");n        if (typeof skipIntroCutscene === "function") {n            skipIntroCutscene();n        } else {n            // Just continue without cutscenen            if (typeof gameProgress !== "undefined") {n                gameProgress.introCutsceneWatched = true;n            }n        }n        return;n    }
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
     return; // Disabled for direct gameplay
 }
                 
                 function advanceCutscene() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
     return; // Disabled for direct gameplay
 }
                 
                 function skipCutscene() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
     return; // Disabled for direct gameplay
 }
                 
@@ -4240,7 +4224,7 @@ const rightMidArmGroup = new THREE.Group();
                 // Check game story progress based on player position
                 function checkStoryProgress(position) {
     // Skip triggers if player loaded from a save and is already away from spawn
-    if (typeof savedPosition !== "undefined" && savedPosition && 
+    if (savedPosition && 
         (Math.abs(position.x) > 5 || Math.abs(position.z) > 5)) {
         gameProgress.borderReached = true; // Prevent border trigger
         console.log("Player continuing from save - skipping story triggers");
@@ -4248,15 +4232,31 @@ const rightMidArmGroup = new THREE.Group();
     }
     
     // Only check for progress if we're in a phase where events can trigger
-    if (gameProgress.storyPhase !== 'escape' || gameProgress.borderReached) {
-        return;
-    }
-    
-    // Border checkpoint location - use simple distance calculation to improve performance
-    const borderCheckpoint = {
-        x: 0,    // Center x-coordinate
-        z: 110,   // Changed from 120 to trigger event earlier
-        radius: 5 // Detection radius
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
+                    // Only check for progress if we're in a phase where events can trigger
+                    if (gameProgress.storyPhase !== 'escape' || gameProgress.borderReached) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
+                        return;
+                    }
+                    
+                    // Border checkpoint location - use simple distance calculation to improve performance
+                    const borderCheckpoint = {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
+                        x: 0,    // Center x-coordinate
+                        z: 110,   // Changed from 120 to trigger event earlier
+                        radius: 5 // Detection radius
                     };
                     
                     // Use squared distance for better performance (avoid expensive sqrt)
@@ -4267,6 +4267,11 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // If player is at the border checkpoint and it hasn't been triggered yet
                     if (squaredDist < squaredRadius && !gameProgress.eventInProgress && !document.getElementById("border-encounter")) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         console.log("Border checkpoint reached!");
                         
                         // Set flags to prevent retriggering
@@ -4284,14 +4289,20 @@ const rightMidArmGroup = new THREE.Group();
                 // Trigger a story event at the border
                 function triggerBorderEncounter() {
     // Skip for continued games
-    if (typeof savedPosition !== "undefined" && savedPosition && 
+    if (savedPosition && 
         (Math.abs(savedPosition.x) > 5 || Math.abs(savedPosition.z) > 5)) {
         console.log("Player continuing from save - skipping border encounter");
         return;
     }
     
     // Prevent multiple trigger
-    if (gameProgress.eventInProgress) return;
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
+                    // Prevent multiple trigger
+                    if (gameProgress.eventInProgress) return;
                     gameProgress.eventInProgress = true;
 
                     // Disable player controls during the event
@@ -4303,6 +4314,11 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Set styles with minimal reflows
                     Object.assign(encounterContainer.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
@@ -4339,6 +4355,11 @@ const rightMidArmGroup = new THREE.Group();
                     // Create options based on inventory
                     const optionsContainer = document.createElement('div');
                     Object.assign(optionsContainer.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '15px'
@@ -4348,6 +4369,11 @@ const rightMidArmGroup = new THREE.Group();
                     const sneakOption = document.createElement('button');
     sneakOption.textContent = 'Use darkness and shadows to slip past';
 Object.assign(sneakOption.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         padding: '15px 20px',
                         backgroundColor: '#445577',
                         color: 'white',
@@ -4357,6 +4383,11 @@ Object.assign(sneakOption.style, {
                         fontSize: '16px'
                     });
                     sneakOption.addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         // Redirect to sneak page
                         window.location.href = '/shadows'
                     });
@@ -4366,6 +4397,11 @@ Object.assign(sneakOption.style, {
                     const alternativeOption = document.createElement('button');
     alternativeOption.textContent = 'Sabotage cameras to create blind spots';
 Object.assign(alternativeOption.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         padding: '15px 20px',
                         backgroundColor: '#557755',
                         color: 'white',
@@ -4375,6 +4411,11 @@ Object.assign(alternativeOption.style, {
                         fontSize: '16px'
                     });
                     alternativeOption.addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         // Redirect to alternative route page
                         // Note: You'll attempt to steal guard uniforms
 console.log('Player chose to steal guard uniforms');
@@ -4384,9 +4425,19 @@ window.location.href = '/cameras'
                     
                     // Option 3: Show crowbar option if available
                     if (gameProgress.hasBackpack && window.playerInventory && window.playerInventory.hasItem('Crowbar')) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         const crowbarOption = document.createElement('button');
     crowbarOption.textContent = 'Steal guard uniforms to blend in'
 Object.assign(crowbarOption.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             padding: '15px 20px',
                             backgroundColor: '#997755',
                             color: 'white',
@@ -4396,6 +4447,11 @@ Object.assign(crowbarOption.style, {
                             fontSize: '16px'
                         });
                         crowbarOption.addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             // Redirect to disguise page
                             window.location.href = '/uniforms'
                         });
@@ -4411,6 +4467,11 @@ Object.assign(crowbarOption.style, {
                     
                     // Force a reflow and then fade in - smoother transition
                     setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         encounterContainer.style.opacity = '1';
                     }, 10);
                 }
@@ -4419,6 +4480,11 @@ Object.assign(crowbarOption.style, {
                 
                 // Add specific items for this scenario
                 document.addEventListener('DOMContentLoaded', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     // Unlock controls immediately
                     blocker.style.display = 'flex';
                     instructions.style.display = '';
@@ -4434,6 +4500,11 @@ Object.assign(crowbarOption.style, {
     
     // Ensure inventory is displayed when hasBackpack is true
     if (window.playerInventory && gameProgress.hasBackpack) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
         window.playerInventory.showUI(true);
     }
     
@@ -4447,7 +4518,17 @@ Object.assign(crowbarOption.style, {
                     // If this page is loaded directly without coming from game.html, 
                     // we need to ensure the player has the right items
                     if (window.playerInventory) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         if (hasBackpack) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             window.playerInventory.addItem('Crowbar', 'A sturdy metal tool that can force doors and serve as a weapon.'); // Position near the border
                     
                     // Add a message about sneaking
@@ -4468,9 +4549,19 @@ Object.assign(crowbarOption.style, {
                     
                     // Set timeout to remove the message after 10 seconds
                     setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         sneakMessage.style.opacity = '0';
                         sneakMessage.style.transition = 'opacity 1s';
                         setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             sneakMessage.remove();
                         }, 1000);
                     }, 10000);
@@ -4481,9 +4572,19 @@ Object.assign(crowbarOption.style, {
 
                 // Start the actual game
                 function startGame(hasBackpack) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     // Remove choice UI
                     const choiceContainer = document.getElementById('choice-container');
                     if (choiceContainer) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         choiceContainer.remove();
                     }
                     
@@ -4493,6 +4594,11 @@ Object.assign(crowbarOption.style, {
                     
                     // Show game UI
                     if (window.playerInventory) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         window.playerInventory.showUI(hasBackpack);
                     }
                     
@@ -4500,7 +4606,12 @@ Object.assign(crowbarOption.style, {
                     blocker.style.display = 'flex';
                     
                     // Log game start
-                    console.log(`Game started with backpack: ${hasBackpack}`);
+                    console.log(`Game started with backpack: ${
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }hasBackpack}`);
                     
                     // Display hint
                     const hintElement = document.createElement('div');
@@ -4521,6 +4632,11 @@ Object.assign(crowbarOption.style, {
                     // Auto-hide hint after 5 seconds
                     document.body.appendChild(hintElement);
                     setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         hintElement.style.opacity = '0';
                         hintElement.style.transition = 'opacity 1s';
                         setTimeout(() => hintElement.remove(), 1000);
@@ -4531,18 +4647,43 @@ Object.assign(crowbarOption.style, {
                 
                 // Initialize inventory system
                 function initInventorySystem() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     // Load existing inventory from localStorage if available
                     let savedInventory = localStorage.getItem('gameInventory');
                     let savedBackpack = localStorage.getItem('hasBackpack');
                     
                     // Create inventory manager
                     window.playerInventory = {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         items: savedInventory ? JSON.parse(savedInventory) : [],
                         
                         addItem: function(name, description) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             // Check if item already exists to prevent duplicates
                             if (!this.hasItem(name)) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                 this.items.push({
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                     name: name,
                                     description: description,
                                     used: false
@@ -4553,7 +4694,17 @@ Object.assign(crowbarOption.style, {
                         },
                         
                         useItem: function(index) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             if (index >= 0 && index < this.items.length) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                 this.items[index].used = true;
                                 this.saveInventory();
                                 this.updateUI();
@@ -4563,10 +4714,20 @@ Object.assign(crowbarOption.style, {
                         },
                         
                         hasItem: function(name) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             return this.items.some(item => item.name === name && !item.used);
                         },
                         
                         saveInventory: function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             // Save inventory to localStorage
                             localStorage.setItem('gameInventory', JSON.stringify(this.items));
                             // Save backpack status
@@ -4574,6 +4735,11 @@ Object.assign(crowbarOption.style, {
                         },
                         
                         clearInventory: function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             // Clear inventory (for game restart)
                             this.items = [];
                             localStorage.removeItem('gameInventory');
@@ -4582,15 +4748,35 @@ Object.assign(crowbarOption.style, {
                         },
                         
                         showUI: function(visible) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             const inventoryUI = document.getElementById('inventory-ui');
                             if (inventoryUI) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                 inventoryUI.style.display = visible ? 'block' : 'none';
                             }
                         },
                         
                         updateUI: function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             let inventoryUI = document.getElementById('inventory-ui');
                             if (!inventoryUI) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                 inventoryUI = document.createElement('div');
                                 inventoryUI.id = 'inventory-ui';
                                 inventoryUI.style.position = 'absolute';
@@ -4608,12 +4794,37 @@ Object.assign(crowbarOption.style, {
                             // Update inventory display
                             let itemsHtml = '<h3 style="margin-top:0">Inventory</h3>';
                             if (this.items.length === 0) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                 itemsHtml += '<p>No items</p>';
                             } else {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                 itemsHtml += '<ul style="padding-left:20px;margin:0">';
                                 this.items.forEach((item, index) => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                     if (!item.used) {
-                                        itemsHtml += `<li>${item.name}</li>`;
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
+                                        itemsHtml += `<li>${
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }item.name}</li>`;
                                     }
                                 });
                                 itemsHtml += '</ul>';
@@ -4628,14 +4839,29 @@ Object.assign(crowbarOption.style, {
                     
                     // If we have a saved backpack status, apply it
                     if (savedBackpack !== null) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         gameProgress.hasBackpack = savedBackpack === 'true';
                     }
                 }
                 
                 // Show backpack choice UI
                 function showBackpackChoice() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     // Make sure this only appears once by checking game progress
                     if (gameProgress.storyPhase !== 'intro') {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         console.log("Backpack choice already made, skipping...");
                         // Move to escape phase directly
                         startGame(gameProgress.hasBackpack);
@@ -4645,6 +4871,11 @@ Object.assign(crowbarOption.style, {
                     // Check if choice container already exists first
                     const existingChoiceContainer = document.getElementById("choice-container");
                     if (existingChoiceContainer) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         console.log("Backpack choice UI already on screen, not creating another one");
                         return;
                     }
@@ -4692,8 +4923,18 @@ Object.assign(crowbarOption.style, {
                     takeButton.style.cursor = 'pointer';
                     takeButton.style.fontSize = '18px';
                     takeButton.addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         // Add items to inventory
                         if (window.playerInventory) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             window.playerInventory.addItem('Crowbar', 'A sturdy metal tool that can force doors and serve as a weapon.');
                             window.playerInventory.addItem('Sandwich', 'A homemade sandwich. Can restore energy or be shared.');
                         }
@@ -4712,6 +4953,11 @@ Object.assign(crowbarOption.style, {
                     leaveButton.style.cursor = 'pointer';
                     leaveButton.style.fontSize = '18px';
                     leaveButton.addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         startGame(false);
                     });
                     buttonContainer.appendChild(leaveButton);
@@ -4722,6 +4968,11 @@ Object.assign(crowbarOption.style, {
                 
                 // Continue the border mission based on chosen approach
                 function continueBorderMission(approach) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     // Reset event status after player chooses an option
                     gameProgress.eventInProgress = false;
 
@@ -4731,8 +4982,18 @@ Object.assign(crowbarOption.style, {
                     // Remove encounter UI with fade-out for smooth transition
                     const encounterContainer = document.getElementById('border-encounter');
                     if (encounterContainer) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         encounterContainer.style.opacity = '0';
                         setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             encounterContainer.remove();
                             
                             // Progress text based on approach
@@ -4740,6 +5001,11 @@ Object.assign(crowbarOption.style, {
                             let successChance = 0;
                             
                             switch (approach) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                 case 'sneak':
                                     outcomeText = "You wait for a patrol to pass, then make your move. Staying in the shadows, you carefully navigate between guard posts.";
                                     successChance = 0.4; // 40% chance
@@ -4762,11 +5028,21 @@ Object.assign(crowbarOption.style, {
                 
                 // Helper function to show outcome dialog
                 function showOutcomeDialog(outcomeText, successChance) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     const outcomeContainer = document.createElement('div');
                     outcomeContainer.id = 'border-outcome';
                     
                     // Optimize styling with Object.assign
                     Object.assign(outcomeContainer.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
@@ -4796,6 +5072,11 @@ Object.assign(crowbarOption.style, {
                     const continueButton = document.createElement('button');
                     continueButton.textContent = 'Continue...';
                     Object.assign(continueButton.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         padding: '15px 30px',
                         backgroundColor: '#335577',
                         color: 'white',
@@ -4806,17 +5087,37 @@ Object.assign(crowbarOption.style, {
                     });
                     
                     continueButton.addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         // Determine success or failure
                         const result = Math.random();
                         if (result <= successChance) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             completeBorderCrossing(true);
                         } else {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             completeBorderCrossing(false);
                         }
                         
                         // Fade out container
                         outcomeContainer.style.opacity = '0';
                         setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             outcomeContainer.remove();
                         }, 300);
                     });
@@ -4827,12 +5128,22 @@ Object.assign(crowbarOption.style, {
                     
                     // Force reflow and fade in
                     setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         outcomeContainer.style.opacity = '1';
                     }, 10);
                 }
                 
                 // Complete the border crossing with success or failure
                 function completeBorderCrossing(success) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     // Keep player controls disabled
                     blocker.style.display = 'none';
                     
@@ -4841,6 +5152,11 @@ Object.assign(crowbarOption.style, {
                     
                     // Optimize styles with Object.assign
                     Object.assign(resultContainer.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
@@ -4868,8 +5184,18 @@ Object.assign(crowbarOption.style, {
                     // Add description
                     const description = document.createElement('p');
                     if (success) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         description.textContent = "You successfully slip past the border checkpoint. As dawn breaks, you see the outskirts of the city behind you. You've made it to the wilderness beyond the regime's reach. Freedom awaits.";
                     } else {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         description.textContent = "An alarm sounds! Searchlights swivel in your direction as guards rush to your position. Despite your efforts, you're surrounded and captured. Your escape attempt has failed... for now.";
                     }
                     description.style.marginBottom = '30px';
@@ -4880,6 +5206,11 @@ Object.assign(crowbarOption.style, {
                     const continueButton = document.createElement('button');
                     continueButton.textContent = success ? 'Continue to Freedom' : 'Try Again';
                     Object.assign(continueButton.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         padding: '15px 30px',
                         backgroundColor: '#335577',
                         color: 'white',
@@ -4890,16 +5221,36 @@ Object.assign(crowbarOption.style, {
                     });
                     
                     continueButton.addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         // Fade out before removing
                         resultContainer.style.opacity = '0';
                         
                         setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             resultContainer.remove();
                             gameProgress.storyPhase = success ? 'finale' : 'escape';
                             
                             if (success) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                 showEndCredits();
                             } else {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                                 // Reset player position to before the checkpoint
                                 player.position.set(0, 1, 0);
                                 gameProgress.borderReached = false;
@@ -4918,17 +5269,32 @@ Object.assign(crowbarOption.style, {
                     
                     // Force reflow and fade in
                     setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         resultContainer.style.opacity = '1';
                     }, 10);
                 }
                 
                 // Show end credits
                 function showEndCredits() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     const creditsContainer = document.createElement('div');
                     creditsContainer.id = 'end-credits';
                     
                     // Optimize styling
                     Object.assign(creditsContainer.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         position: 'absolute',
                         top: '0',
                         left: '0',
@@ -4971,6 +5337,11 @@ Object.assign(crowbarOption.style, {
                     const restart = document.createElement('button');
                     restart.textContent = 'Play Again';
                     Object.assign(restart.style, {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         marginTop: '50px',
                         padding: '15px 30px',
                         backgroundColor: '#446688',
@@ -4982,9 +5353,19 @@ Object.assign(crowbarOption.style, {
                     });
                     
                     restart.addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         // Smooth fade-out before reload
                         creditsContainer.style.opacity = '0';
                         setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             location.reload();
                         }, 400);
                     });
@@ -4995,15 +5376,30 @@ Object.assign(crowbarOption.style, {
                     
                     // Force reflow and fade in, with a slight delay for drama
                     setTimeout(() => {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         creditsContainer.style.opacity = '1';
                     }, 100);
                 }
 
                 // Call resetCharacterPose when cutscene ends
                 document.addEventListener('keydown', function(event) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     if (!cutsceneActive) return;
                     
                     if (event.code === 'Space' || event.code === 'Enter' || event.code === 'Escape') {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         cutsceneActive = false;
                         resetCharacterPose();
                         
@@ -5018,6 +5414,11 @@ Object.assign(crowbarOption.style, {
 
                 // Make character turn head to the opposite direction
                 function turnHeadOtherway() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     // Don't animate if we're not in a cutscene anymore
                     if (!cutsceneActive) return;
                     
@@ -5038,6 +5439,11 @@ Object.assign(crowbarOption.style, {
                     
                     // Animation function
                     function animateHeadTurn() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         // Calculate progress (0 to 1)
                         const elapsed = Date.now() - startTime;
                         const progress = Math.min(elapsed / duration, 1);
@@ -5047,6 +5453,11 @@ Object.assign(crowbarOption.style, {
                         
                         // Apply head rotation (change X rotation to look up, and Y to face front)
                         if (player.headGroup) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             player.headGroup.rotation.x = initialHeadRotX + (targetHeadRotX - initialHeadRotX) * eased;
                             player.headGroup.rotation.y = initialHeadRotY + (targetHeadRotY - initialHeadRotY) * eased;
                             player.headGroup.position.z = initialHeadPosZ;
@@ -5054,6 +5465,11 @@ Object.assign(crowbarOption.style, {
                         
                         // Continue animation if not complete and still in cutscene
                         if (progress < 1 && cutsceneActive) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             requestAnimationFrame(animateHeadTurn);
                         }
                     }
@@ -5064,151 +5480,154 @@ Object.assign(crowbarOption.style, {
 
                 // Add event listeners for keyboard inputs
                 document.addEventListener('keydown', function(e) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     state.keysPressed[e.code] = true;
                     state.lastInputTime = Date.now();
                     
                     // Toggle inventory on E key
                     if (e.code === 'KeyE') {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         toggleInventory();
                     }
                     
                     // Handle Escape key for pause menu
                     if (e.code === 'Escape') {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         togglePauseMenu();
                     }
                     
                     // Handle camera mode switch with Tab key
                     if (e.code === 'Tab') {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         e.preventDefault(); // Prevent tab from changing focus
                         state.cameraMode = state.cameraMode === 'free' ? 'shiftlock' : 'free';
-                        console.log(`Camera mode switched to: ${state.cameraMode}`);
+                        console.log(`Camera mode switched to: ${
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }state.cameraMode}`);
                     }
                 });
 
                 // Initialize event listeners
                 function initEventListeners() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     // Existing code for event listeners
                     
                     // Add pause menu button listeners
                     document.getElementById('resume-game').addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         togglePauseMenu(false);
                     });
                     
                     document.getElementById('restart-game').addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         window.location.reload();
                     });
                     document.getElementById("save-quit").addEventListener("click", function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         saveGameAndQuit();
                     });
                                 
                     document.getElementById('return-home').addEventListener('click', function() {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         window.location.href = 'index.html';
                     });
-                
-                    // Add Save & Quit button listener
-                    document.getElementById('save-quit').addEventListener('click', function() {
-                        saveGameAndQuit();
-                    });
-}
+                }
 
                 // Toggle pause menu
                 function togglePauseMenu(forcedState) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                     const pauseMenu = document.getElementById('pause-menu');
                     const isPaused = forcedState !== undefined ? forcedState : pauseMenu.style.display === 'none';
                     
                     if (isPaused) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         pauseMenu.style.display = 'flex';
                         // Pause game
                         state.gamePaused = true;
                         
                         // If pointer is locked, unlock it
                         if (document.pointerLockElement) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             document.exitPointerLock();
                         }
                     } else {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                         pauseMenu.style.display = 'none';
                         // Resume game
                         state.gamePaused = false;
                         
-                        // Re
-                // Save game and quit function
-                function saveGameAndQuit() {
-                    // Get current page URL
-                    const currentPage = window.location.pathname.split('/').pop();
-                    
-                    try {
-                        // Create game data to save
-                        const gameData = {
-                            currentPage,
-                            position: {
-                                x: player.position.x,
-                                y: player.position.y,
-                                z: player.position.z
-                            },
-                            cameraRotation: {
-                                x: state.cameraRotation.x,
-                                y: state.cameraRotation.y
-                            },
-                            // Ensure gameProgress is an object
-                            gameProgress: (typeof gameProgress === 'object' && gameProgress !== null) 
-                                ? gameProgress 
-                                : {
-                                    hasBackpack: false,
-                                    storyPhase: 'intro',
-                                    checkpointTriggered: false,
-                                    borderReached: false
-                                },
-                            inventoryItems: state.inventory && state.inventory.items ? state.inventory.items : []
-                        };
-                        
-                        // Also save to localStorage for immediate use when continuing
-                        try {
-                            localStorage.setItem('gameData', JSON.stringify(gameData));
-                            console.log('Game data saved to localStorage');
-                        } catch (localStorageErr) {
-                            console.error('Failed to save to localStorage:', localStorageErr);
-                        }
-                        
-                        // Call API to save game
-                        fetch('/api/save-game', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(gameData)
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`Server responded with status: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (data.success) {
-                                console.log('Game saved successfully');
-                                // Redirect to home page
-                                window.location.href = 'index.html';
-                            } else {
-                                console.error('Failed to save game:', data.error);
-                                alert('Failed to save game: ' + (data.error || 'Unknown error'));
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error saving game:', error);
-                            alert('Error saving game. Please try again.');
-                        });
-                    } catch (err) {
-                        console.error('Exception in saveGameAndQuit:', err);
-                        alert('Error preparing save data: ' + err.message);
-                    }
-                }
--lock pointer if needed
+                        // Re-lock pointer if needed
                         if (controlsEnabled) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                             renderer.domElement.requestPointerLock();
                         }
                     }
                 }
             } catch (error) {
+        // Skip cutscene if player has already seen it and is continuing from a save
+        if (window.savedGameProgress && (window.savedGameProgress.introCutsceneWatched || window.savedGameProgress.storyPhase !== "intro")) {
+            console.log("Skipping intro cutscene - already watched");
+            return;
+        }
                 debugElement.textContent = "Error: " + error.message;
                 console.error(error);
             }
