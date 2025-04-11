@@ -557,11 +557,11 @@
                 scene.fog.color = fogColor;
                 
                 // Enhance ambient lighting - change to darker mood
-                const ambientLight = new THREE.AmbientLight(0x555566, 0.6);
+                const ambientLight = new THREE.AmbientLight(0x777788, 0.8);
                 scene.add(ambientLight);
                 
                 // Add directional light for natural moonlight effect
-                const dirLight = new THREE.DirectionalLight(0x556677, 0.8);
+                const dirLight = new THREE.DirectionalLight(0x778899, 1.0);
                 dirLight.position.set(30, 100, 30);
                 dirLight.castShadow = true;
                 dirLight.shadow.mapSize.width = 2048;
@@ -1101,7 +1101,7 @@
                     scene.add(outsideGroup);
                     
                     // Add atmospheric lighting for the outside
-                    const moonLight = new THREE.DirectionalLight(0x334455, 0.5);
+                    const moonLight = new THREE.DirectionalLight(0x667788, 0.7);
                     moonLight.position.set(-50, 80, -30);
                     moonLight.castShadow = true;
                     moonLight.shadow.mapSize.width = 2048;
@@ -1559,7 +1559,7 @@
                         outsideGroup.add(fogLight);
                         
                         // Add volumetric haze for atmosphere
-                        const hazeLight = new THREE.DirectionalLight(0x555577, 0.5);
+                        const hazeLight = new THREE.DirectionalLight(0x778899, 0.7);
                         hazeLight.position.set(-1, 1, 1);
                         hazeLight.lookAt(0, 0, 0);
                         outsideGroup.add(hazeLight);

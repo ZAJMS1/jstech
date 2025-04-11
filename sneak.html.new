@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dystopian Escape - Guard Uniforms</title>
+    <title>Dystopian Escape</title>
     <link rel="stylesheet" href="css/styles.css">
     <!-- Updated to ES modules version of Three.js -->
     <script type="importmap">
@@ -17,59 +17,6 @@
 <script>
     // Add event listeners to restart buttons to clear inventory
     document.addEventListener('DOMContentLoaded', function() {
-    // Auto-trigger border encounter
-    setTimeout(() => {
-      // Ensure game progress is properly set up
-      if (typeof gameProgress === 'undefined') {
-        window.gameProgress = {
-          eventInProgress: false,
-          borderReached: false,
-          storyPhase: 'border',
-          hasBackpack: localStorage.getItem('hasBackpack') === 'true'
-        };
-      }
-      
-      // Force trigger the border encounter directly
-      console.log("Auto-triggering border encounter...");
-      try {
-        triggerBorderEncounter();
-      } catch (error) {
-        console.error("Error triggering border encounter:", error);
-        
-        // Fallback mechanism to go back to the main game if the page doesn't load
-        setTimeout(() => {
-          if (!document.getElementById('border-encounter')) {
-            console.warn("Border encounter didn't appear, redirecting to game...");
-            window.location.href = '/game';
-          }
-        }, 5000); // Wait 5 seconds before fallback redirect
-      }
-    }, 500); // Small delay to ensure page is loaded
-    
-    // Fix any displayMessage function issues
-    window.displayMessage = window.displayMessage || function(message, duration) {
-      console.log("Message:", message);
-      const messageElement = document.createElement('div');
-      messageElement.textContent = message;
-      messageElement.style.position = 'absolute';
-      messageElement.style.top = '10px';
-      messageElement.style.left = '50%';
-      messageElement.style.transform = 'translateX(-50%)';
-      messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-      messageElement.style.color = 'white';
-      messageElement.style.padding = '10px 20px';
-      messageElement.style.borderRadius = '5px';
-      messageElement.style.fontFamily = 'Courier New, monospace';
-      messageElement.style.fontSize = '16px';
-      messageElement.style.zIndex = '100';
-      document.body.appendChild(messageElement);
-      
-      setTimeout(() => {
-        messageElement.style.opacity = '0';
-        messageElement.style.transition = 'opacity 1s';
-        setTimeout(() => messageElement.remove(), 1000);
-      }, duration || 3000);
-    };
         document.querySelectorAll('.restart-game, #restart-game').forEach(button => {
             button.addEventListener('click', function() {
                 // Clear localStorage before restarting
@@ -258,6 +205,69 @@
 <script src="js/save-system.js"></script>
 </head>
 <body>
+    <!-- Direct Knife Popup -->
+    <div id="direct-knife-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 10000; display: none; justify-content: center; align-items: center;">
+        <div id="direct-knife-popup" style="background-color: rgba(20, 20, 40, 0.95); color: white; padding: 30px; border-radius: 10px; text-align: center; z-index: 10001; border: 2px solid #73a1ff; box-shadow: 0 0 20px #73a1ff; width: 400px; max-width: 90%;">
+            <h2 style="color: #73a1ff; margin-bottom: 20px;">Found Item</h2>
+            <p style="margin-bottom: 25px; line-height: 1.5;">You notice a pocket knife on the ground. It might be useful for cutting through obstacles.</p>
+            <div style="display: flex; justify-content: space-between; gap: 15px;">
+                <button id="take-knife-btn" style="padding: 12px 20px; background-color: #3b6c4a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; flex: 1;">Take Knife</button>
+                <button id="leave-knife-btn" style="padding: 12px 20px; background-color: #6c3b3b; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; flex: 1;">Leave It</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Direct script to handle knife popup choices with delay
+        document.addEventListener('DOMContentLoaded', function() {
+            const backdrop = document.getElementById('direct-knife-backdrop');
+            const takeButton = document.getElementById('take-knife-btn');
+            const leaveButton = document.getElementById('leave-knife-btn');
+            
+            if (!backdrop || !takeButton || !leaveButton) {
+                console.error('Knife popup elements not found');
+                return;
+            }
+            
+            takeButton.addEventListener('click', function() {
+                // Add knife to inventory if playerInventory exists
+                if (window.playerInventory) {
+                    window.playerInventory.addItem('Pocket Knife', 'A small but sharp knife, useful for cutting through various materials.');
+                }
+                // Save choice to localStorage
+                localStorage.setItem('hasKnife', 'true');
+                // Hide popup with fade out effect
+                backdrop.style.opacity = '0';
+                setTimeout(() => {
+                    backdrop.style.display = 'none';
+                }, 500);
+            });
+            
+            leaveButton.addEventListener('click', function() {
+                // Set flag to remove fence option
+                localStorage.setItem('hasKnife', 'false');
+                // Hide popup with fade out effect
+                backdrop.style.opacity = '0';
+                setTimeout(() => {
+                    backdrop.style.display = 'none';
+                }, 500);
+            });
+            
+            // Show the popup after a 2 second delay
+            setTimeout(() => {
+                // Add transition for smooth appearance
+                backdrop.style.transition = 'opacity 0.5s ease-in-out';
+                backdrop.style.opacity = '0';
+                backdrop.style.display = 'flex';
+                
+                // Force reflow then fade in
+                setTimeout(() => {
+                    backdrop.style.opacity = '1';
+                }, 50);
+            }, 2000); // 2 second delay
+        });
+    </script>
+
     <div id="game-container">
         <div id="loading-screen">
             <div class="loading-text">Loading Dystopian World...</div>
@@ -547,11 +557,11 @@
                 scene.fog.color = fogColor;
                 
                 // Enhance ambient lighting - change to darker mood
-                const ambientLight = new THREE.AmbientLight(0x777788, 0.8);
+                const ambientLight = new THREE.AmbientLight(0x555566, 0.6);
                 scene.add(ambientLight);
                 
                 // Add directional light for natural moonlight effect
-                const dirLight = new THREE.DirectionalLight(0x778899, 1.0);
+                const dirLight = new THREE.DirectionalLight(0x556677, 0.8);
                 dirLight.position.set(30, 100, 30);
                 dirLight.castShadow = true;
                 dirLight.shadow.mapSize.width = 2048;
@@ -1091,7 +1101,7 @@
                     scene.add(outsideGroup);
                     
                     // Add atmospheric lighting for the outside
-                    const moonLight = new THREE.DirectionalLight(0x667788, 0.7);
+                    const moonLight = new THREE.DirectionalLight(0x334455, 0.5);
                     moonLight.position.set(-50, 80, -30);
                     moonLight.castShadow = true;
                     moonLight.shadow.mapSize.width = 2048;
@@ -1549,7 +1559,7 @@
                         outsideGroup.add(fogLight);
                         
                         // Add volumetric haze for atmosphere
-                        const hazeLight = new THREE.DirectionalLight(0x778899, 0.7);
+                        const hazeLight = new THREE.DirectionalLight(0x555577, 0.5);
                         hazeLight.position.set(-1, 1, 1);
                         hazeLight.lookAt(0, 0, 0);
                         outsideGroup.add(hazeLight);
@@ -3347,7 +3357,7 @@ const rightMidArmGroup = new THREE.Group();
                 
                 // Game progression variables - Set to escape phase directly 
                 let gameProgress = {
-                    hasBackpack: true, // Player has backpack in sneak scenario
+                    hasBackpack: true, // Player has backpack in alternative route scenario
                     storyPhase: 'escape', // Directly set to escape phase to skip intro
                     checkpointTriggered: false,
                     borderReached: false
@@ -3366,10 +3376,12 @@ const rightMidArmGroup = new THREE.Group();
                     const delta = (time - lastFrameTime) / 1000;
                     lastFrameTime = time;
                     
-                    // Always update player movement since cutscene is disabled
-                    update(time, delta);
+                    // Don't update player movement during cutscenes
+                    if (!cutsceneActive) {
+                        update(time, delta);
                     // Check story progress based on player position
                     checkStoryProgress(player.position);
+                    }
                     
                     // Animate flickering lights if they exist
                     if (window.flickeringLights) {
@@ -4287,267 +4299,1169 @@ const rightMidArmGroup = new THREE.Group();
                 }
                 
                 // Trigger a story event at the border
+                function triggerBorderEncounter() {
+                    // Prevent multiple trigger
+                    if (gameProgress.eventInProgress) return;
+                    gameProgress.eventInProgress = true;
+
+                    // Disable player controls during the event
+                    blocker.style.display = 'none';
+                    
+                    // Create border checkpoint UI - optimize for better performance
+                    const encounterContainer = document.createElement('div');
+                    encounterContainer.id = 'border-encounter';
+                    
+                    // Set styles with minimal reflows
+                    Object.assign(encounterContainer.style, {
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '70%',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: '30px',
+                        borderRadius: '10px',
+                        textAlign: 'center',
+                        zIndex: '1000',
+                        opacity: '0',
+                        transition: 'opacity 0.3s ease-in'
+                    });
+                    
+                    // Prepare content first, then add to DOM once
+                    const content = document.createDocumentFragment();
+                    
+                    // Add title
+                    const title = document.createElement('h2');
+                    title.textContent = 'Underground Passage';
+
+                    title.style.marginBottom = '20px';
+                    content.appendChild(title);
+                    
+                    // Add description
+                    const description = document.createElement('p');
+                    description.innerHTML = 'You\'ve discovered rumors of an abandoned maintenance tunnel that runs beneath the border wall. Finding the entrance won\'t be easy, and there\'s no telling what dangers lurk below. The tunnel might be collapsed, flooded, or worse - but it could be your only chance to escape undetected.';
+
+                    description.style.marginBottom = '30px';
+                    description.style.lineHeight = '1.5';
+                    content.appendChild(description);
+                    
+                    // Create options based on inventory
+                    const optionsContainer = document.createElement('div');
+                    Object.assign(optionsContainer.style, {
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '15px'
+                    });
+                    
+                    // Option 1: Try to sneak past
+                    const sneakOption = document.createElement('button');
+                    /sneakOption\.textContent = '[^']*';/
+                    Object.assign(sneakOption.style, {
+                        padding: '15px 20px',
+                        backgroundColor: '#885577',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    sneakOption.addEventListener('click', function() {
+                        // Redirect to sneak page
+                        window.location.href = '/tunnels';
+                    });
+                    optionsContainer.appendChild(sneakOption);
+                    
+                    // Option 2: Look for alternative route
+                    const alternativeOption = document.createElement('button');
+    alternativeOption.textContent = 'Explore abandoned maintenance tunnels';
+
+                    /sneakOption\.textContent = '[^']*';/
+                    Object.assign(sneakOption.style, {
+                        padding: '15px 20px',
+                        backgroundColor: '#446688',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    sneakOption.addEventListener('click', function() {
+                        // Redirect to sneak page
+                        window.location.href = '/tunnels'
+                    });
+                    optionsContainer.appendChild(sneakOption);
+                    
+                    // Option 2: Look for alternative route
+                    // Reusing existing alternativeOption
+                    /alternativeOption\.textContent = '[^']*';/
+                    
+    sneakOption.textContent = 'Ride supply truck through delivery entrance';
+Object.assign(sneakOption.style, {
+                        padding: '15px 20px',
+                        backgroundColor: '#446688',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    sneakOption.addEventListener('click', function() {
+                        // Redirect to sneak page
+                        window.location.href = '/truck'
+                    });
+                    optionsContainer.appendChild(sneakOption);
+                    
+                    // Option 2: Look for alternative route
+                    // Reusing existing alternativeOption
+                    /alternativeOption\.textContent = '[^']*';/
+                    Object.assign(alternativeOption.style, {
+                        padding: '15px 20px',
+                        backgroundColor: '#558855',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    alternativeOption.addEventListener('click', function() {
+                        // Redirect to alternative route page
+                        window.location.href = '/alternative';
+                    });
+                    optionsContainer.appendChild(alternativeOption);
+                    
+                    // Option 3: Show crowbar option if available
+                    if (gameProgress.hasBackpack && window.playerInventory && window.playerInventory.hasItem('Crowbar')) {
+                        const crowbarOption = document.createElement('button');
+                        crowbarOption.textContent = 'Cut through fence at unguarded section';
+                        Object.assign(crowbarOption.style, {
+                            padding: '15px 20px',
+                            backgroundColor: '#778855',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '16px'
+                        });
+                        crowbarOption.addEventListener('click', function() {
+                            // Redirect to disguise page
+                            window.location.href = '/fence'
+                        });
+                        // Only show fence cutting option if player has knife
+        if (localStorage.getItem('hasKnife') !== 'false') {
+            // Only show fence cutting option if player has knife
+                        if (localStorage.getItem('hasKnife') !== 'false') {
+                            optionsContainer.appendChild(crowbarOption);
+                        }
+        }
+                    }
+                    
+                    // Add options to content
+                    content.appendChild(optionsContainer);
+                    
+                    // Add all content at once to minimize layout thrashing
+                    encounterContainer.appendChild(content);
+                    document.body.appendChild(encounterContainer);
+                    
+                    // Force a reflow and then fade in - smoother transition
+                    setTimeout(() => {
+                        encounterContainer.style.opacity = '1';
+                    }, 10);
+                }
+
+                // Modify the initialization to enable player controls immediately
                 
-function triggerBorderEncounter() {
-    // Prevent multiple trigger
-    if (gameProgress.eventInProgress) return;
-    gameProgress.eventInProgress = true;
-
-    // Disable player controls during the event
-    blocker.style.display = 'none';
+                // Add specific items for this scenario
+                document.addEventListener('DOMContentLoaded', function() {
     
-    // Create border checkpoint UI
-    const encounterContainer = document.createElement('div');
-    encounterContainer.id = 'border-encounter';
     
-    // Set styles
-    Object.assign(encounterContainer.style, {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '70%',
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        color: 'white',
-        padding: '30px',
-        borderRadius: '10px',
-        textAlign: 'center',
-        zIndex: '1000',
-        opacity: '0',
-        transition: 'opacity 0.3s ease-in'
-    });
-    
-    // Prepare content
-    const content = document.createDocumentFragment();
-    
-    // Add title
-    const title = document.createElement('h2');
-    title.textContent = 'Guard Uniforms';
-    title.style.marginBottom = '20px';
-    content.appendChild(title);
-    
-    // Add description
-    const description = document.createElement('p');
-    description.innerHTML = 'You've managed to acquire a guard uniform from an unattended locker room.';
-    description.style.marginBottom = '30px';
-    description.style.lineHeight = '1.5';
-    content.appendChild(description);
-    
-    // Create options
-    const optionsContainer = document.createElement('div');
-    Object.assign(optionsContainer.style, {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '15px'
-    });
-    
-    // Add choice options with different colors
-    
-    // Option 1: Walk confidently like you belong
-    const option1 = document.createElement('button');
-    option1.textContent = 'Walk confidently like you belong';
-    Object.assign(option1.style, {
-        padding: '15px 20px',
-        backgroundColor: '#445577',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '16px'
-    });
-    
-    option1.addEventListener('click', function() {
-        // Determine outcome based on probability
-        const success = Math.random() < 0.7;
-        
-        // Show outcome popup
-        showOutcomePopup(
-            success, 
-            'With perfect posture and confidence, you walk through checkpoints as guards nod respectfully at your uniform.', 
-            'A senior guard notices you don't have the right ID badge for your uniform section. "Hey, you! Stop right there!"', 
-            'success.html', 
-            'game.html'
-        );
-        
-        // Remove encounter UI
-        encounterContainer.style.opacity = '0';
-        setTimeout(() => encounterContainer.remove(), 300);
-    });
-    optionsContainer.appendChild(option1);
-
-    // Option 2: Join a patrol group
-    const option2 = document.createElement('button');
-    option2.textContent = 'Join a patrol group';
-    Object.assign(option2.style, {
-        padding: '15px 20px',
-        backgroundColor: '#557755',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '16px'
-    });
-    
-    option2.addEventListener('click', function() {
-        // Determine outcome based on probability
-        const success = Math.random() < 0.4;
-        
-        // Show outcome popup
-        showOutcomePopup(
-            success, 
-            'You seamlessly integrate with a patrol unit heading toward the perimeter, then break away once outside the main compound.', 
-            'The patrol leader checks in with each member. When your turn comes, your lack of knowledge immediately gives you away.', 
-            'success.html', 
-            'game.html'
-        );
-        
-        // Remove encounter UI
-        encounterContainer.style.opacity = '0';
-        setTimeout(() => encounterContainer.remove(), 300);
-    });
-    optionsContainer.appendChild(option2);
-
-    // Option 3: Pretend to escort a prisoner
-    const option3 = document.createElement('button');
-    option3.textContent = 'Pretend to escort a prisoner';
-    Object.assign(option3.style, {
-        padding: '15px 20px',
-        backgroundColor: '#775544',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '16px'
-    });
-    
-    option3.addEventListener('click', function() {
-        // Determine outcome based on probability
-        const success = Math.random() < 0.5;
-        
-        // Show outcome popup
-        showOutcomePopup(
-            success, 
-            'You grab a random maintenance worker, pretending they're under arrest. Guards at checkpoints let you through without question.', 
-            'The "prisoner" realizes you're not a real guard and starts shouting for help. Real guards quickly surround you.', 
-            'success.html', 
-            'game.html'
-        );
-        
-        // Remove encounter UI
-        encounterContainer.style.opacity = '0';
-        setTimeout(() => encounterContainer.remove(), 300);
-    });
-    optionsContainer.appendChild(option3);
-    
-    // Add options to content
-    content.appendChild(optionsContainer);
-    
-    // Add all content at once
-    encounterContainer.appendChild(content);
-    document.body.appendChild(encounterContainer);
-    
-    // Force a reflow and fade in
+    // Make sure the knife prompt is visible and appears on top of everything
+    // Use setTimeout to ensure it's added after all other elements
     setTimeout(() => {
-        encounterContainer.style.opacity = '1';
-    }, 10);
-}
+        // Force the prompt to be visible
+        knifePromptContainer.style.zIndex = '9999';
+        
+        // Add a backdrop to make it more visible
+        const backdrop = document.createElement('div');
+        backdrop.id = 'knife-prompt-backdrop';
+        Object.assign(backdrop.style, {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: '9998'
+        });
+        document.body.insertBefore(backdrop, knifePromptContainer);
+        
+        // Add a close event for the backdrop
+        backdrop.addEventListener('click', function(e) {
+            if (e.target === backdrop) {
+                // If they click outside, default to not taking the knife
+                localStorage.setItem('hasKnife', 'false');
+                backdrop.remove();
+                knifePromptContainer.style.display = 'none';
+            }
+        });
+        
+        // Update button event handlers to remove backdrop
+        const yesButton = knifePromptContainer.querySelector('button:first-of-type');
+        const noButton = knifePromptContainer.querySelector('button:last-of-type');
+        
+        const originalYesHandler = yesButton.onclick;
+        yesButton.onclick = function() {
+            backdrop.remove();
+            if (originalYesHandler) originalYesHandler.call(this);
+        };
+        
+        const originalNoHandler = noButton.onclick;
+        noButton.onclick = function() {
+            backdrop.remove();
+            if (originalNoHandler) originalNoHandler.call(this);
+        };
+    }, 500);
+                    // Unlock controls immediately
+                    blocker.style.display = 'flex';
+                    instructions.style.display = '';
+                    
+                    
+    // Ensure controls are unlocked from the start
+    blocker.style.display = "flex";
+    instructions.style.display = "";
+    
+    // Display alternative path message
+    displayMessage("You're searching for the underground passage. Look for hidden entrances in the area.", 5000);
 
-// Function to show outcome popup
-function showOutcomePopup(success, successText, failureText, successRedirect, failureRedirect) {
-    // Create outcome popup
-    const outcomeContainer = document.createElement('div');
-    outcomeContainer.id = 'outcome-popup';
     
-    // Set styles for the container
-    Object.assign(outcomeContainer.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        zIndex: '10000',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        opacity: '0',
-        transition: 'opacity 0.5s ease-in-out'
-    });
+    // Ensure inventory is displayed when hasBackpack is true
+    if (window.playerInventory && gameProgress.hasBackpack) {
+        window.playerInventory.showUI(true);
+    }
     
-    // Create popup content
-    const popupContent = document.createElement('div');
-    Object.assign(popupContent.style, {
-        backgroundColor: success ? 'rgba(20, 40, 20, 0.95)' : 'rgba(40, 20, 20, 0.95)',
-        color: 'white',
-        padding: '30px',
-        borderRadius: '10px',
-        maxWidth: '500px',
-        width: '80%',
-        border: '2px solid ' + (success ? '#73ff73' : '#ff7373'),
-        boxShadow: '0 0 20px ' + (success ? '#73ff73' : '#ff7373')
-    });
-    
-    // Add title
-    const title = document.createElement('h2');
-    title.textContent = success ? 'Success!' : 'Failure!';
-    title.style.color = success ? '#73ff73' : '#ff7373';
-    title.style.marginBottom = '20px';
-    
-    // Add outcome text
-    const outcomeText = document.createElement('p');
-    outcomeText.textContent = success ? successText : failureText;
-    outcomeText.style.marginBottom = '25px';
-    outcomeText.style.lineHeight = '1.5';
-    
-    // Add continue button
-    const continueButton = document.createElement('button');
-    continueButton.textContent = success ? 'Continue' : 'Try Again';
-    Object.assign(continueButton.style, {
-        padding: '12px 20px',
-        backgroundColor: success ? '#3b6c4a' : '#6c3b3b',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '16px',
-        display: 'block',
-        margin: '0 auto'
-    });
-    
-    // Add click event
-    continueButton.addEventListener('click', function() {
-        // Redirect to appropriate page
-        window.location.href = success ? successRedirect : failureRedirect;
-    });
-    
-    // Assemble the popup
-    popupContent.appendChild(title);
-    popupContent.appendChild(outcomeText);
-    popupContent.appendChild(continueButton);
-    outcomeContainer.appendChild(popupContent);
-    
-    // Add to document
-    document.body.appendChild(outcomeContainer);
-    
-    // Fade in
-    setTimeout(() => {
-        outcomeContainer.style.opacity = '1';
-    }, 50);
-}
-
-                // Add pause menu button listeners
-                document.getElementById('resume-game').addEventListener('click', function() {
-                    togglePauseMenu(false);
+    // Position player at the border checkpoint area
+                    player.position.set(0, 1, 50); // Starting position adjusted (outside)
+                    
+                    // Check localStorage for backpack status and restore inventory
+                    const hasBackpack = localStorage.getItem('hasBackpack') === 'true';
+                    gameProgress.hasBackpack = hasBackpack;
+                    
+                    // If this page is loaded directly without coming from game.html, 
+                    // we need to ensure the player has the right items
+                    if (window.playerInventory) {
+                        if (hasBackpack) {
+                            window.playerInventory.addItem('Crowbar', 'A sturdy metal tool that can force doors and serve as a weapon.'); // Position near the border
+                    
+                    // Add a message about the alternative route
+                    const alternativeMessage = document.createElement('div');
+                    alternativeMessage.textContent = "You've found an alternative route through an abandoned maintenance tunnel. Navigate carefully through the dark.";
+                    alternativeMessage.style.position = 'absolute';
+                    alternativeMessage.style.top = '10px';
+                    alternativeMessage.style.left = '50%';
+                    alternativeMessage.style.transform = 'translateX(-50%)';
+                    alternativeMessage.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                    alternativeMessage.style.color = 'white';
+                    alternativeMessage.style.padding = '10px 20px';
+                    alternativeMessage.style.borderRadius = '5px';
+                    alternativeMessage.style.fontFamily = 'Courier New, monospace';
+                    alternativeMessage.style.fontSize = '16px';
+                    alternativeMessage.style.zIndex = '100';
+                    document.body.appendChild(alternativeMessage);
+                    
+                    // Set timeout to remove the message after 10 seconds
+                    setTimeout(() => {
+                        alternativeMessage.style.opacity = '0';
+                        alternativeMessage.style.transition = 'opacity 1s';
+                        setTimeout(() => {
+                            alternativeMessage.remove();
+                        }, 1000);
+                    }, 10000);
+                        }
+                        window.playerInventory.showUI(hasBackpack);
+                    }
                 });
+
+                // Start the actual game
+                function startGame(hasBackpack) {
+                    // Remove choice UI
+                    const choiceContainer = document.getElementById('choice-container');
+                    if (choiceContainer) {
+                        choiceContainer.remove();
+                    }
+                    
+                    // Set game progression
+                    gameProgress.hasBackpack = hasBackpack;
+                    gameProgress.storyPhase = 'escape';
+                    
+                    // Show game UI
+                    if (window.playerInventory) {
+                        window.playerInventory.showUI(hasBackpack);
+                    }
+                    
+                    // Enable player controls
+                    blocker.style.display = 'flex';
+                    
+                    // Log game start
+                    console.log(`Game started with backpack: ${hasBackpack}`);
+                    
+                    // Display hint
+                    const hintElement = document.createElement('div');
+                    hintElement.id = 'game-hint';
+                    hintElement.style.position = 'absolute';
+                    hintElement.style.bottom = '20px';
+                    hintElement.style.left = '50%';
+                    hintElement.style.transform = 'translateX(-50%)';
+                    hintElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                    hintElement.style.color = 'white';
+                    hintElement.style.padding = '10px 20px';
+                    hintElement.style.borderRadius = '5px';
+                    hintElement.style.zIndex = '999';
+                    hintElement.textContent = hasBackpack 
+                        ? 'Hint: Your backpack contains items that might help you escape.' 
+                        : 'Hint: Without your backpack, you\'ll need to find alternative solutions.';
+                    
+                    // Auto-hide hint after 5 seconds
+                    document.body.appendChild(hintElement);
+                    setTimeout(() => {
+                        hintElement.style.opacity = '0';
+                        hintElement.style.transition = 'opacity 1s';
+                        setTimeout(() => hintElement.remove(), 1000);
+                    }, 5000);
+                }
                 
-                document.getElementById('restart-game').addEventListener('click', function() {
-                    window.location.reload();
+                // Initialize inventory system
+                
+                // Initialize inventory system
+                function initInventorySystem() {
+                    // Load existing inventory from localStorage if available
+                    let savedInventory = localStorage.getItem('gameInventory');
+                    let savedBackpack = localStorage.getItem('hasBackpack');
+                    
+                    // Create inventory manager
+                    window.playerInventory = {
+                        items: savedInventory ? JSON.parse(savedInventory) : [],
+                        
+                        addItem: function(name, description) {
+                            // Check if item already exists to prevent duplicates
+                            if (!this.hasItem(name)) {
+                                // Check if inventory is at capacity (3 items)
+                                const activeItems = this.items.filter(item => !item.used);
+                                if (activeItems.length >= 3) {
+                                    // Inventory full - show item limit popup
+                                    this.showItemLimitPopup(name, description);
+                                    return false;
+                                }
+                                
+                                // Add item as normal
+                                this.items.push({
+                                    name: name,
+                                    description: description,
+                                    used: false
+                                });
+                                this.saveInventory();
+                                this.updateUI();
+                                return true;
+                            }
+                            return false;
+                        },
+                        
+                        showItemLimitPopup: function(newItemName, newItemDescription) {
+                            // Create item limit popup
+                            const inventoryLimitContainer = document.createElement('div');
+                            inventoryLimitContainer.id = 'inventory-limit-popup';
+                            
+                            // Set styles for the container
+                            Object.assign(inventoryLimitContainer.style, {
+                                position: 'fixed',
+                                top: '0',
+                                left: '0',
+                                width: '100%',
+                                height: '100%',
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                zIndex: '10000',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                            });
+                            
+                            // Create popup content
+                            const popupContent = document.createElement('div');
+                            Object.assign(popupContent.style, {
+                                backgroundColor: 'rgba(20, 20, 40, 0.95)',
+                                color: 'white',
+                                padding: '30px',
+                                borderRadius: '10px',
+                                maxWidth: '500px',
+                                width: '80%',
+                                border: '2px solid #73a1ff',
+                                boxShadow: '0 0 20px #73a1ff'
+                            });
+                            
+                            // Add title and description
+                            const title = document.createElement('h2');
+                            title.textContent = 'Inventory Full';
+                            title.style.color = '#73a1ff';
+                            title.style.marginBottom = '15px';
+                            
+                            const description = document.createElement('p');
+                            description.textContent = 'You found: ' + newItemName + ' - ' + newItemDescription;
+                            description.style.marginBottom = '15px';
+                            
+                            const limitText = document.createElement('p');
+                            limitText.textContent = 'Your inventory is full (maximum 3 items). You can either leave this item behind or drop something else to make room.';
+                            limitText.style.marginBottom = '25px';
+                            
+                            // Create item list for dropping
+                            const itemListContainer = document.createElement('div');
+                            itemListContainer.style.marginBottom = '20px';
+                            
+                            const itemListTitle = document.createElement('h3');
+                            itemListTitle.textContent = 'Choose an item to drop:';
+                            itemListTitle.style.marginBottom = '10px';
+                            
+                            const itemList = document.createElement('div');
+                            itemList.style.display = 'flex';
+                            itemList.style.flexDirection = 'column';
+                            itemList.style.gap = '10px';
+                            
+                            // Get active items
+                            const activeItems = this.items.filter(item => !item.used);
+                            
+                            // Add each item as a button
+                            activeItems.forEach((item, index) => {
+                                const itemButton = document.createElement('button');
+                                itemButton.textContent = item.name + ' - ' + item.description;
+                                Object.assign(itemButton.style, {
+                                    padding: '10px',
+                                    backgroundColor: '#3b546c',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    textAlign: 'left'
+                                });
+                                
+                                // Add hover effect
+                                itemButton.addEventListener('mouseover', function() {
+                                    this.style.backgroundColor = '#4c6580';
+                                });
+                                itemButton.addEventListener('mouseout', function() {
+                                    this.style.backgroundColor = '#3b546c';
+                                });
+                                
+                                // Add click event to drop this item and pick up the new one
+                                itemButton.addEventListener('click', () => {
+                                    // Mark this item as dropped/used
+                                    this.items[this.items.indexOf(item)].used = true;
+                                    
+                                    // Add the new item
+                                    this.items.push({
+                                        name: newItemName,
+                                        description: newItemDescription,
+                                        used: false
+                                    });
+                                    
+                                    // Save inventory and update UI
+                                    this.saveInventory();
+                                    this.updateUI();
+                                    
+                                    // Close popup
+                                    inventoryLimitContainer.remove();
+                                });
+                                
+                                itemList.appendChild(itemButton);
+                            });
+                            
+                            // Add "Leave it" button
+                            const buttonContainer = document.createElement('div');
+                            buttonContainer.style.display = 'flex';
+                            buttonContainer.style.justifyContent = 'space-between';
+                            buttonContainer.style.marginTop = '20px';
+                            
+                            const leaveButton = document.createElement('button');
+                            leaveButton.textContent = 'Leave ' + newItemName;
+                            Object.assign(leaveButton.style, {
+                                padding: '12px 20px',
+                                backgroundColor: '#6c3b3b',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '5px',
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                flex: '1',
+                                marginRight: '10px'
+                            });
+                            leaveButton.addEventListener('click', () => {
+                                inventoryLimitContainer.remove();
+                            });
+                            
+                            // Assemble the popup
+                            itemListContainer.appendChild(itemListTitle);
+                            itemListContainer.appendChild(itemList);
+                            
+                            popupContent.appendChild(title);
+                            popupContent.appendChild(description);
+                            popupContent.appendChild(limitText);
+                            popupContent.appendChild(itemListContainer);
+                            
+                            buttonContainer.appendChild(leaveButton);
+                            popupContent.appendChild(buttonContainer);
+                            
+                            inventoryLimitContainer.appendChild(popupContent);
+                            document.body.appendChild(inventoryLimitContainer);
+                        },
+                        
+                        useItem: function(index) {
+                            if (index >= 0 && index < this.items.length) {
+                                this.items[index].used = true;
+                                this.saveInventory();
+                                this.updateUI();
+                                return true;
+                            }
+                            return false;
+                        },
+                        
+                        hasItem: function(name) {
+                            return this.items.some(item => item.name === name && !item.used);
+                        },
+                        
+                        saveInventory: function() {
+                            // Save inventory to localStorage
+                            localStorage.setItem('gameInventory', JSON.stringify(this.items));
+                            // Save backpack status
+                            localStorage.setItem('hasBackpack', gameProgress.hasBackpack);
+                        },
+                        
+                        clearInventory: function() {
+                            // Clear inventory (for game restart)
+                            this.items = [];
+                            localStorage.removeItem('gameInventory');
+                            localStorage.removeItem('hasBackpack');
+                            this.updateUI();
+                        },
+                        
+                        showUI: function(visible) {
+                            const inventoryUI = document.getElementById('inventory-ui');
+                            if (inventoryUI) {
+                                inventoryUI.style.display = visible ? 'block' : 'none';
+                            }
+                        },
+                        
+                        updateUI: function() {
+                            let inventoryUI = document.getElementById('inventory-ui');
+                            if (!inventoryUI) {
+                                inventoryUI = document.createElement('div');
+                                inventoryUI.id = 'inventory-ui';
+                                inventoryUI.style.position = 'absolute';
+                                inventoryUI.style.top = '10px';
+                                inventoryUI.style.right = '10px';
+                                inventoryUI.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                                inventoryUI.style.color = 'white';
+                                inventoryUI.style.padding = '10px';
+                                inventoryUI.style.borderRadius = '5px';
+                                inventoryUI.style.maxWidth = '250px';
+                                inventoryUI.style.zIndex = '999';
+                                document.body.appendChild(inventoryUI);
+                            }
+                            
+                            // Update inventory display
+                            let itemsHtml = '<h3 style="margin-top:0">Inventory</h3>';
+                            if (this.items.length === 0) {
+                                itemsHtml += '<p>No items</p>';
+                            } else {
+                                itemsHtml += '<ul style="padding-left:20px;margin:0">';
+                                this.items.forEach((item, index) => {
+                                    if (!item.used) {
+                                        itemsHtml += `<li>${item.name}</li>`;
+                                    }
+                                });
+                                itemsHtml += '</ul>';
+                            }
+                            inventoryUI.innerHTML = itemsHtml;
+                        }
+                    };
+                    
+                    // Initialize empty inventory UI
+                    window.playerInventory.updateUI();
+                    window.playerInventory.showUI(gameProgress.hasBackpack); // Show immediately if player has backpack
+                    
+                    // If we have a saved backpack status, apply it
+                    if (savedBackpack !== null) {
+                        gameProgress.hasBackpack = savedBackpack === 'true';
+                    }
+                }
+                
+                // Show backpack choice UI
+                function showBackpackChoice() {
+                    // Make sure this only appears once by checking game progress
+                    if (gameProgress.storyPhase !== 'intro') {
+                        console.log("Backpack choice already made, skipping...");
+                        // Move to escape phase directly
+                        startGame(gameProgress.hasBackpack);
+                        return;
+                    }
+                    
+                    // Check if choice container already exists first
+                    const existingChoiceContainer = document.getElementById("choice-container");
+                    if (existingChoiceContainer) {
+                        console.log("Backpack choice UI already on screen, not creating another one");
+                        return;
+                    }
+                    
+                    // Create choice container
+                    const choiceContainer = document.createElement('div');
+                    choiceContainer.id = 'choice-container';
+                    choiceContainer.style.position = 'absolute';
+                    choiceContainer.style.top = '50%';
+                    choiceContainer.style.left = '50%';
+                    choiceContainer.style.transform = 'translate(-50%, -50%)';
+                    choiceContainer.style.width = '60%';
+                    choiceContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                    choiceContainer.style.color = 'white';
+                    choiceContainer.style.padding = '30px';
+                    choiceContainer.style.borderRadius = '10px';
+                    choiceContainer.style.textAlign = 'center';
+                    choiceContainer.style.zIndex = '1000';
+                    
+                    // Add title
+                    const title = document.createElement('h2');
+                    title.textContent = 'Before leaving...';
+                    title.style.marginBottom = '20px';
+                    choiceContainer.appendChild(title);
+                    
+                    // Add description
+                    const description = document.createElement('p');
+                    description.textContent = 'Your backpack sits by the door. It contains a crowbar and a sandwich you prepared earlier.';
+                    description.style.marginBottom = '30px';
+                    choiceContainer.appendChild(description);
+                    
+                    // Create button container
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.style.display = 'flex';
+                    buttonContainer.style.justifyContent = 'space-around';
+                    
+                    // Take backpack button
+                    const takeButton = document.createElement('button');
+                    takeButton.textContent = 'Take Backpack';
+                    takeButton.style.padding = '10px 20px';
+                    takeButton.style.backgroundColor = '#446688';
+                    takeButton.style.color = 'white';
+                    takeButton.style.border = 'none';
+                    takeButton.style.borderRadius = '5px';
+                    takeButton.style.cursor = 'pointer';
+                    takeButton.style.fontSize = '18px';
+                    takeButton.addEventListener('click', function() {
+                        // Add items to inventory
+                        if (window.playerInventory) {
+                            window.playerInventory.addItem('Crowbar', 'A sturdy metal tool that can force doors and serve as a weapon.');
+                            window.playerInventory.addItem('Sandwich', 'A homemade sandwich. Can restore energy or be shared.');
+                        }
+                        startGame(true);
+                    });
+                    buttonContainer.appendChild(takeButton);
+                    
+                    // Leave without button
+                    const leaveButton = document.createElement('button');
+                    leaveButton.textContent = 'Leave Without It';
+                    leaveButton.style.padding = '10px 20px';
+                    leaveButton.style.backgroundColor = '#885555';
+                    leaveButton.style.color = 'white';
+                    leaveButton.style.border = 'none';
+                    leaveButton.style.borderRadius = '5px';
+                    leaveButton.style.cursor = 'pointer';
+                    leaveButton.style.fontSize = '18px';
+                    leaveButton.addEventListener('click', function() {
+                        startGame(false);
+                    });
+                    buttonContainer.appendChild(leaveButton);
+                    
+                    choiceContainer.appendChild(buttonContainer);
+                    document.body.appendChild(choiceContainer);
+                }
+                
+                // Continue the border mission based on chosen approach
+                function continueBorderMission(approach) {
+                    // Reset event status after player chooses an option
+                    gameProgress.eventInProgress = false;
+
+                    // Keep player controls disabled
+                    blocker.style.display = 'none';
+                    
+                    // Remove encounter UI with fade-out for smooth transition
+                    const encounterContainer = document.getElementById('border-encounter');
+                    if (encounterContainer) {
+                        encounterContainer.style.opacity = '0';
+                        setTimeout(() => {
+                            encounterContainer.remove();
+                            
+                            // Progress text based on approach
+                            let outcomeText = "";
+                            let successChance = 0;
+                            
+                            switch (approach) {
+                                case 'sneak':
+                                    outcomeText = "You wait for a patrol to pass, then make your move. Staying in the shadows, you carefully navigate between guard posts.";
+                                    successChance = 0.4; // 40% chance
+                                    break;
+                                case 'alternative':
+                                    outcomeText = "After careful scouting, you discover a maintenance tunnel that runs beneath the checkpoint. It's dark and cramped, but appears unguarded.";
+                                    successChance = 0.6; // 60% chance
+                                    break;
+                                case 'crowbar':
+                                    outcomeText = "Using your crowbar, you pry open a rusted sewer grate and slip into the tunnels below. The stench is overwhelming, but it's a clear path under the border.";
+                                    successChance = 0.9; // 90% chance with the right tool
+                                    break;
+                            }
+                            
+                            // Create outcome UI with optimized DOM operations
+                            showOutcomeDialog(outcomeText, successChance);
+                        }, 300); // Match fade duration
+                    }
+                }
+                
+                // Helper function to show outcome dialog
+                function showOutcomeDialog(outcomeText, successChance) {
+                    const outcomeContainer = document.createElement('div');
+                    outcomeContainer.id = 'border-outcome';
+                    
+                    // Optimize styling with Object.assign
+                    Object.assign(outcomeContainer.style, {
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '70%',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: '30px',
+                        borderRadius: '10px',
+                        textAlign: 'center',
+                        zIndex: '1000',
+                        opacity: '0',
+                        transition: 'opacity 0.3s ease-in'
+                    });
+                    
+                    // Use document fragment to build content
+                    const content = document.createDocumentFragment();
+                    
+                    // Add description
+                    const description = document.createElement('p');
+                    description.textContent = outcomeText;
+                    description.style.marginBottom = '30px';
+                    description.style.lineHeight = '1.5';
+                    content.appendChild(description);
+                    
+                    // Add continue button
+                    const continueButton = document.createElement('button');
+                    continueButton.textContent = 'Continue...';
+                    Object.assign(continueButton.style, {
+                        padding: '15px 30px',
+                        backgroundColor: '#335577',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    
+                    continueButton.addEventListener('click', function() {
+                        // Determine success or failure
+                        const result = Math.random();
+                        if (result <= successChance) {
+                            completeBorderCrossing(true);
+                        } else {
+                            completeBorderCrossing(false);
+                        }
+                        
+                        // Fade out container
+                        outcomeContainer.style.opacity = '0';
+                        setTimeout(() => {
+                            outcomeContainer.remove();
+                        }, 300);
+                    });
+                    
+                    content.appendChild(continueButton);
+                    outcomeContainer.appendChild(content);
+                    document.body.appendChild(outcomeContainer);
+                    
+                    // Force reflow and fade in
+                    setTimeout(() => {
+                        outcomeContainer.style.opacity = '1';
+                    }, 10);
+                }
+                
+                // Complete the border crossing with success or failure
+                function completeBorderCrossing(success) {
+                    // Keep player controls disabled
+                    blocker.style.display = 'none';
+                    
+                    const resultContainer = document.createElement('div');
+                    resultContainer.id = 'mission-result';
+                    
+                    // Optimize styles with Object.assign
+                    Object.assign(resultContainer.style, {
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '70%',
+                        backgroundColor: success ? 'rgba(0, 40, 0, 0.8)' : 'rgba(40, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: '30px',
+                        borderRadius: '10px',
+                        textAlign: 'center',
+                        zIndex: '1000',
+                        opacity: '0',
+                        transition: 'opacity 0.3s ease-in'
+                    });
+                    
+                    // Use document fragment for better performance
+                    const content = document.createDocumentFragment();
+                    
+                    // Add result title
+                    const title = document.createElement('h2');
+                    title.textContent = success ? 'Success!' : 'Captured!';
+                    title.style.marginBottom = '20px';
+                    content.appendChild(title);
+                    
+                    // Add description
+                    const description = document.createElement('p');
+                    if (success) {
+                        description.textContent = "You successfully slip past the border checkpoint. As dawn breaks, you see the outskirts of the city behind you. You've made it to the wilderness beyond the regime's reach. Freedom awaits.";
+                    } else {
+                        description.textContent = "An alarm sounds! Searchlights swivel in your direction as guards rush to your position. Despite your efforts, you're surrounded and captured. Your escape attempt has failed... for now.";
+                    }
+                    description.style.marginBottom = '30px';
+                    description.style.lineHeight = '1.5';
+                    content.appendChild(description);
+                    
+                    // Add continue button
+                    const continueButton = document.createElement('button');
+                    continueButton.textContent = success ? 'Continue to Freedom' : 'Try Again';
+                    Object.assign(continueButton.style, {
+                        padding: '15px 30px',
+                        backgroundColor: '#335577',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    
+                    continueButton.addEventListener('click', function() {
+                        // Fade out before removing
+                        resultContainer.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            resultContainer.remove();
+                            gameProgress.storyPhase = success ? 'finale' : 'escape';
+                            
+                            if (success) {
+                                showEndCredits();
+                            } else {
+                                // Reset player position to before the checkpoint
+                                player.position.set(0, 1, 0);
+                                gameProgress.borderReached = false;
+            gameProgress.eventInProgress = false;
+                                
+                                // Re-enable player controls on failure
+                                cutsceneActive = false;
+                                blocker.style.display = 'flex';
+                            }
+                        }, 300);
+                    });
+                    
+                    content.appendChild(continueButton);
+                    resultContainer.appendChild(content);
+                    document.body.appendChild(resultContainer);
+                    
+                    // Force reflow and fade in
+                    setTimeout(() => {
+                        resultContainer.style.opacity = '1';
+                    }, 10);
+                }
+                
+                // Show end credits
+                function showEndCredits() {
+                    const creditsContainer = document.createElement('div');
+                    creditsContainer.id = 'end-credits';
+                    
+                    // Optimize styling
+                    Object.assign(creditsContainer.style, {
+                        position: 'absolute',
+                        top: '0',
+                        left: '0',
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                        color: 'white',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: '2000',
+                        opacity: '0',
+                        transition: 'opacity 0.6s ease-in'
+                    });
+                    
+                    // Use document fragment for better performance
+                    const content = document.createDocumentFragment();
+                    
+                    const title = document.createElement('h1');
+                    title.textContent = 'Dystopia Escape';
+                    title.style.fontSize = '48px';
+                    title.style.marginBottom = '30px';
+                    content.appendChild(title);
+                    
+                    const subtitle = document.createElement('h2');
+                    subtitle.textContent = 'You have escaped to freedom';
+                    subtitle.style.fontSize = '24px';
+                    subtitle.style.marginBottom = '50px';
+                    subtitle.style.fontWeight = 'normal';
+                    content.appendChild(subtitle);
+                    
+                    const credits = document.createElement('div');
+                    credits.style.fontSize = '18px';
+                    credits.style.lineHeight = '1.8';
+                    credits.style.textAlign = 'center';
+                    credits.innerHTML = 'Thank you for playing<br><br>A Three.js Experiment';
+                    content.appendChild(credits);
+                    
+                    const restart = document.createElement('button');
+                    restart.textContent = 'Play Again';
+                    Object.assign(restart.style, {
+                        marginTop: '50px',
+                        padding: '15px 30px',
+                        backgroundColor: '#446688',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    });
+                    
+                    restart.addEventListener('click', function() {
+                        // Smooth fade-out before reload
+                        creditsContainer.style.opacity = '0';
+                        setTimeout(() => {
+                            location.reload();
+                        }, 400);
+                    });
+                    
+                    content.appendChild(restart);
+                    creditsContainer.appendChild(content);
+                    document.body.appendChild(creditsContainer);
+                    
+                    // Force reflow and fade in, with a slight delay for drama
+                    setTimeout(() => {
+                        creditsContainer.style.opacity = '1';
+                    }, 100);
+                }
+
+                // Call resetCharacterPose when cutscene ends
+                document.addEventListener('keydown', function(event) {
+                    if (!cutsceneActive) return;
+                    
+                    if (event.code === 'Space' || event.code === 'Enter' || event.code === 'Escape') {
+                        cutsceneActive = false;
+                        resetCharacterPose();
+                        
+                        // Hide dialogue box
+                        const dialogueBox = document.getElementById('dialogue-box');
+                        if (dialogueBox) dialogueBox.style.display = 'none';
+                        
+                        // Re-enable controls
+                        controls.lock();
+                    }
                 });
 
-                document.getElementById('save-quit').addEventListener('click', function() {
-                    saveGameAndQuit();
+                // Make character turn head to the opposite direction
+                function turnHeadOtherway() {
+                    // Don't animate if we're not in a cutscene anymore
+                    if (!cutsceneActive) return;
+                    
+                    // Save initial head rotation
+                    const initialHeadRotX = player.headGroup ? player.headGroup.rotation.x : 0;
+                    const initialHeadRotY = player.headGroup ? player.headGroup.rotation.y : 0;
+                    const initialHeadPosZ = player.headGroup ? player.headGroup.position.z : 0;
+                    
+                    // Target rotation (looking upward while returning to face front)
+                    const targetHeadRotX = -0.2; // Tilt slightly upward toward sky
+                    const targetHeadRotY = 0;    // Return to facing forward
+                    
+                    // Duration of animation in milliseconds
+                    const duration = 1000;
+                    
+                    // Animation start time
+                    const startTime = Date.now();
+                    
+                    // Animation function
+                    function animateHeadTurn() {
+                        // Calculate progress (0 to 1)
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        
+                        // Easing function for smooth animation
+                        const eased = 1 - Math.pow(1 - progress, 3); // Cubic ease out
+                        
+                        // Apply head rotation (change X rotation to look up, and Y to face front)
+                        if (player.headGroup) {
+                            player.headGroup.rotation.x = initialHeadRotX + (targetHeadRotX - initialHeadRotX) * eased;
+                            player.headGroup.rotation.y = initialHeadRotY + (targetHeadRotY - initialHeadRotY) * eased;
+                            player.headGroup.position.z = initialHeadPosZ;
+                        }
+                        
+                        // Continue animation if not complete and still in cutscene
+                        if (progress < 1 && cutsceneActive) {
+                            requestAnimationFrame(animateHeadTurn);
+                        }
+                    }
+                    
+                    // Start the animation
+                    animateHeadTurn();
+                }
+
+                // Add event listeners for keyboard inputs
+                document.addEventListener('keydown', function(e) {
+                    state.keysPressed[e.code] = true;
+                    state.lastInputTime = Date.now();
+                    
+                    // Toggle inventory on E key
+                    if (e.code === 'KeyE') {
+                        toggleInventory();
+                    }
+                    
+                    // Handle Escape key for pause menu
+                    if (e.code === 'Escape') {
+                        togglePauseMenu();
+                    }
+                    
+                    // Handle camera mode switch with Tab key
+                    if (e.code === 'Tab') {
+                        e.preventDefault(); // Prevent tab from changing focus
+                        state.cameraMode = state.cameraMode === 'free' ? 'shiftlock' : 'free';
+                        console.log(`Camera mode switched to: ${state.cameraMode}`);
+                    }
                 });
+
+                // Initialize event listeners
+                function initEventListeners() {
+                    // Existing code for event listeners
+                    
+                    // Add pause menu button listeners
+                    document.getElementById('resume-game').addEventListener('click', function() {
+                        togglePauseMenu(false);
+                    });
+                    
+                    document.getElementById('restart-game').addEventListener('click', function() {
+                        window.location.reload();
+                    });
+                    
+                    document.getElementById('save-quit').addEventListener('click', function() {
+                        saveGameAndQuit();
+                    });
+                    
+                    document.getElementById('return-home').addEventListener('click', function() {
+                        window.location.href = 'index.html';
+                    });
+                }
+
+                // Toggle pause menu
+                function togglePauseMenu(forcedState) {
+                    const pauseMenu = document.getElementById('pause-menu');
+                    const isPaused = forcedState !== undefined ? forcedState : pauseMenu.style.display === 'none';
+                    
+                    if (isPaused) {
+                        pauseMenu.style.display = 'flex';
+                        // Pause game
+                        state.gamePaused = true;
+                        
+                        // If pointer is locked, unlock it
+                        if (document.pointerLockElement) {
+                            document.exitPointerLock();
+                        }
+                    } else {
+                        pauseMenu.style.display = 'none';
+                        // Resume game
+                        state.gamePaused = false;
+                        
+                        // Re-lock pointer if needed
+                        if (controlsEnabled) {
+                            renderer.domElement.requestPointerLock();
+                        }
+                    }
+                }
                 
-                document.getElementById('return-home').addEventListener('click', function() {
-                    window.location.href = 'index.html';
-                });
+                // Save game and quit function
+                function saveGameAndQuit() {
+                    // Get current page URL
+                    const currentPage = window.location.pathname.split('/').pop();
+                    
+                    try {
+                        // Create game data to save
+                        const gameData = {
+                            currentPage,
+                            position: {
+                                x: player.position.x,
+                                y: player.position.y,
+                                z: player.position.z
+                            },
+                            cameraRotation: {
+                                x: state.cameraRotation.x,
+                                y: state.cameraRotation.y
+                            },
+                            // Ensure gameProgress is an object
+                            gameProgress: (typeof gameProgress === 'object' && gameProgress !== null) 
+                                ? gameProgress 
+                                : {
+                                    hasBackpack: false,
+                                    storyPhase: 'intro',
+                                    checkpointTriggered: false,
+                                    borderReached: false
+                                },
+                            inventoryItems: state.inventory.items || []
+                        };
+                        
+                        // Call API to save game
+                        fetch('/api/save-game', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(gameData)
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`Server responded with status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                console.log('Game saved successfully');
+                                // Redirect to home page
+                                window.location.href = 'index.html';
+                            } else {
+                                console.error('Failed to save game:', data.error);
+                                alert('Failed to save game: ' + (data.error || 'Unknown error'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error saving game:', error);
+                            alert('Error saving game. Please try again.');
+                        });
+                    } catch (err) {
+                        console.error('Exception in saveGameAndQuit:', err);
+                        alert('Error preparing save data: ' + err.message);
+                    }
+                }
+            } catch (error) {
+                debugElement.textContent = "Error: " + error.message;
+                console.error(error);
+            }
+        };
+
+    </script>
+
+</body>
+</html>

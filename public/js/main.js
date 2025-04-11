@@ -92,12 +92,12 @@ function init() {
 }
 
 function addLights() {
-    // Ambient light (dim for dystopian mood)
-    const ambientLight = new THREE.AmbientLight(0x333333, 0.5);
+    // Ambient light (brighter for better visibility)
+    const ambientLight = new THREE.AmbientLight(0x555555, 0.7);
     state.scene.add(ambientLight);
     
-    // Directional light (dim sun)
-    const dirLight = new THREE.DirectionalLight(0x8888aa, 0.8);
+    // Directional light (brighter sun)
+    const dirLight = new THREE.DirectionalLight(0x9999bb, 1.0);
     dirLight.position.set(5, 20, 5);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
@@ -111,11 +111,11 @@ function addLights() {
     state.scene.add(dirLight);
     
     // Add some fog/haze glow lights for atmosphere
-    const fogLight1 = new THREE.PointLight(0x446688, 2, 15);
+    const fogLight1 = new THREE.PointLight(0x557799, 2.5, 15);
     fogLight1.position.set(-10, 1, -10);
     state.scene.add(fogLight1);
     
-    const fogLight2 = new THREE.PointLight(0x664444, 2, 20);
+    const fogLight2 = new THREE.PointLight(0x775555, 2.5, 20);
     fogLight2.position.set(15, 0.5, 15);
     state.scene.add(fogLight2);
 }
