@@ -82,4 +82,12 @@ canvas {
     border: 1px solid #444;
     max-width: 80%;
     overflow-wrap: break-word;
-} 
+}
+
+.key-tip {
+    position: absolute;
+    bottom: 10px;
+    right: 15px;
+    font-size: 12px;
+    color: #aaa;
+}

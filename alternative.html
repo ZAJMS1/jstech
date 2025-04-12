@@ -4136,6 +4136,266 @@ const rightMidArmGroup = new THREE.Group();
                 bathroomLight.shadow.mapSize.height = 1024;
                 // House element removed
 
+                // Add border fence
+                const fenceGroup = new THREE.Group();
+                fenceGroup.position.set(0, 0, 120);
+
+                // Create fence posts and sections
+                for (let x = -50; x <= 50; x += 4) {
+                    // Fence post
+                    const post = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.4, 8, 0.4),
+                        new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 })
+                    );
+                    post.position.set(x, 4, 0);
+                    post.castShadow = true;
+                    post.receiveShadow = true;
+                    fenceGroup.add(post);
+
+                    // Barbed wire coils
+                    const coilGeometry = new THREE.TorusGeometry(0.3, 0.05, 8, 16);
+                    const barbedWireMaterial = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.6 });
+                    
+                    for (let h = 0; h < 3; h++) {
+                        const coil = new THREE.Mesh(coilGeometry, barbedWireMaterial);
+                        coil.position.set(x + 2, 7.5 - h * 0.5, 0);
+                        coil.rotation.y = Math.PI / 2;
+                        coil.castShadow = true;
+                        fenceGroup.add(coil);
+                    }
+
+                    // Chain-link fence sections
+                    if (x < 48) {
+                        const chainLink = new THREE.Mesh(
+                            new THREE.PlaneGeometry(4, 8),
+                            new THREE.MeshStandardMaterial({
+                                color: 0xcccccc,
+                                roughness: 0.6,
+                                metalness: 0.4,
+                                transparent: true,
+                                opacity: 0.8,
+                                side: THREE.DoubleSide
+                            })
+                        );
+                        chainLink.position.set(x + 2, 4, 0);
+                        chainLink.receiveShadow = true;
+                        fenceGroup.add(chainLink);
+
+                        // Add cross supports
+                        const crossSupport = new THREE.Mesh(
+                            new THREE.BoxGeometry(4.2, 0.2, 0.1),
+                            new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 })
+                        );
+                        crossSupport.position.set(x + 2, 4, 0);
+                        crossSupport.castShadow = true;
+                        fenceGroup.add(crossSupport);
+                    }
+                }
+
+                scene.add(fenceGroup);
+
+                // Add red pickup truck with enhanced details
+                const truckGroup = new THREE.Group();
+                truckGroup.position.set(-10, 0, 110);
+                truckGroup.rotation.y = Math.PI / 6;
+
+                // Main body - more complex shape with subtle curve
+                const bodyGeometry = new THREE.BoxGeometry(6, 2.2, 2.8);
+                const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xcc2200,
+                    roughness: 0.6,
+                    metalness: 0.4
+                });
+                const truckBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                truckBody.position.y = 1.5;
+
+                // Add body details - side panels with slight indent
+                const sidePanel = new THREE.Mesh(
+                    new THREE.BoxGeometry(5.8, 0.8, 0.1),
+                    new THREE.MeshStandardMaterial({ color: 0xbb1100 })
+                );
+                sidePanel.position.set(0, 1.2, 1.4);
+                truckBody.add(sidePanel);
+
+                const sidePanelRight = sidePanel.clone();
+                sidePanelRight.position.z = -1.4;
+                truckBody.add(sidePanelRight);
+
+                // Front grill - more detailed
+                const grillGeometry = new THREE.BoxGeometry(0.2, 1.2, 2.4);
+                const grillMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x222222,
+                    metalness: 0.8,
+                    roughness: 0.2
+                });
+                const grill = new THREE.Mesh(grillGeometry, grillMaterial);
+                grill.position.set(-2.9, 1.5, 0);
+                truckBody.add(grill);
+
+                // Grill mesh pattern
+                for (let i = 0; i < 6; i++) {
+                    const grillBar = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.1, 0.1, 1.8),
+                        grillMaterial
+                    );
+                    grillBar.position.set(-2.95, 1.2 + i * 0.2, 0);
+                    truckBody.add(grillBar);
+                }
+
+                // Front bumper with chrome finish
+                const bumperMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xcccccc,
+                    metalness: 0.9,
+                    roughness: 0.1
+                });
+                const bumper = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.4, 0.4, 2.9),
+                    bumperMaterial
+                );
+                bumper.position.set(-3, 0.8, 0);
+                truckBody.add(bumper);
+
+                // License plate
+                const plateMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    metalness: 0.5,
+                    roughness: 0.5
+                });
+                const plate = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.1, 0.4, 0.8),
+                    plateMaterial
+                );
+                plate.position.set(-3.05, 1.1, 0);
+                truckBody.add(plate);
+
+                truckGroup.add(truckBody);
+
+                // Enhanced cabin with better proportions
+                const cabin = new THREE.Mesh(
+                    new THREE.BoxGeometry(3, 2, 2.8),
+                    bodyMaterial
+                );
+                cabin.position.set(-1.5, 2.6, 0);
+
+                // Cabin roof with slight curve
+                const roofGeometry = new THREE.BoxGeometry(3.2, 0.2, 3);
+                const roof = new THREE.Mesh(roofGeometry, bodyMaterial);
+                roof.position.y = 1.1;
+                cabin.add(roof);
+
+                // Window frames - chrome trim
+                const windowFrame = new THREE.Mesh(
+                    new THREE.BoxGeometry(2.6, 0.1, 2.9),
+                    bumperMaterial
+                );
+                windowFrame.position.set(0, 0.9, 0);
+                cabin.add(windowFrame);
+
+                truckGroup.add(cabin);
+
+                // Enhanced windows with better transparency and reflection
+                const windowMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0x88ccff,
+                    transparent: true,
+                    opacity: 0.3,
+                    metalness: 0.9,
+                    roughness: 0.1,
+                    envMapIntensity: 1,
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.1
+                });
+
+                // Windshield with better angle
+                const windshield = new THREE.Mesh(
+                    new THREE.PlaneGeometry(2.5, 1.5),
+                    windowMaterial
+                );
+                windshield.position.set(-2.6, 2.8, 0);
+                windshield.rotation.y = Math.PI / 2;
+                windshield.rotation.x = Math.PI * 0.02; // Slight angle
+                truckGroup.add(windshield);
+
+                // Side windows with frame detail
+                const sideWindowGeom = new THREE.Shape();
+                sideWindowGeom.moveTo(0, 0);
+                sideWindowGeom.lineTo(2.8, 0);
+                sideWindowGeom.lineTo(2.8, 1.2);
+                sideWindowGeom.lineTo(2.3, 1.2);
+                sideWindowGeom.lineTo(0, 1.2);
+                sideWindowGeom.lineTo(0, 0);
+
+                const sideWindowShape = new THREE.ShapeGeometry(sideWindowGeom);
+                const sideWindow = new THREE.Mesh(sideWindowShape, windowMaterial);
+                sideWindow.position.set(-2.9, 2.2, 1.41);
+                truckGroup.add(sideWindow);
+
+                const sideWindow2 = sideWindow.clone();
+                sideWindow2.position.z = -1.41;
+                truckGroup.add(sideWindow2);
+
+                // Enhanced wheels with better detail
+                const wheelGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.4, 24);
+                const tireMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x222222,
+                    roughness: 0.8
+                });
+                const wheelRimMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xcccccc,
+                    metalness: 0.8,
+                    roughness: 0.2
+                });
+
+                const wheelPositions = [
+                    [-2.5, 0.6, 1.5],  // Front left
+                    [-2.5, 0.6, -1.5], // Front right
+                    [1.5, 0.6, 1.5],   // Back left
+                    [1.5, 0.6, -1.5]   // Back right
+                ];
+
+                wheelPositions.forEach(pos => {
+                    const wheelGroup = new THREE.Group();
+                    wheelGroup.position.set(...pos);
+                    
+                    // Tire
+                    const tire = new THREE.Mesh(wheelGeometry, tireMaterial);
+                    tire.rotation.z = Math.PI / 2;
+                    wheelGroup.add(tire);
+                    
+                    // Rim
+                    const rim = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.3, 0.3, 0.41, 8),
+                        wheelRimMaterial
+                    );
+                    rim.rotation.z = Math.PI / 2;
+                    wheelGroup.add(rim);
+                    
+                    // Hub cap
+                    const hubCap = new THREE.Mesh(
+                        new THREE.CircleGeometry(0.15, 8),
+                        wheelRimMaterial
+                    );
+                    hubCap.position.y = 0.21;
+                    hubCap.rotation.y = Math.PI / 2;
+                    wheelGroup.add(hubCap);
+                    
+                    truckGroup.add(wheelGroup);
+                });
+
+                scene.add(truckGroup);
+
+                // Mark objects as collidable
+                fenceGroup.traverse(obj => {
+                    if (obj.isMesh) {
+                        obj.userData.collidable = true;
+                    }
+                });
+
+                truckGroup.traverse(obj => {
+                    if (obj.isMesh) {
+                        obj.userData.collidable = true;
+                    }
+                });
+
                 // Initialize audio effects
                 function initAudioEffects() {
                     // Set up ambient sounds
@@ -4396,7 +4656,7 @@ const rightMidArmGroup = new THREE.Group();
                     // Reusing existing alternativeOption
                     /alternativeOption\.textContent = '[^']*';/
                     
-    sneakOption.textContent = 'Ride supply truck through delivery entrance';
+    sneakOption.textContent = 'Hide in supply truck through delivery entrance';
 Object.assign(sneakOption.style, {
                         padding: '15px 20px',
                         backgroundColor: '#446688',
@@ -4431,30 +4691,26 @@ Object.assign(sneakOption.style, {
                     optionsContainer.appendChild(alternativeOption);
                     
                     // Option 3: Show crowbar option if available
-                    if (gameProgress.hasBackpack && window.playerInventory && window.playerInventory.hasItem('Crowbar')) {
-                        const crowbarOption = document.createElement('button');
-                        crowbarOption.textContent = 'Cut through fence at unguarded section';
-                        Object.assign(crowbarOption.style, {
-                            padding: '15px 20px',
-                            backgroundColor: '#778855',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '5px',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                        });
-                        crowbarOption.addEventListener('click', function() {
-                            // Redirect to disguise page
-                            window.location.href = '/fence'
-                        });
-                        // Only show fence cutting option if player has knife
-        if (localStorage.getItem('hasKnife') !== 'false') {
-            // Only show fence cutting option if player has knife
-                        if (localStorage.getItem('hasKnife') !== 'false') {
-                            optionsContainer.appendChild(crowbarOption);
-                        }
-        }
-                    }
+                    if ((gameProgress.hasBackpack && window.playerInventory && window.playerInventory.hasItem('Crowbar')) || 
+    localStorage.getItem('hasKnife') === 'true') {
+    const crowbarOption = document.createElement('button');
+    crowbarOption.textContent = localStorage.getItem('hasKnife') === 'true' 
+        ? 'Cut through fence with knife' 
+        : 'Cut through fence with crowbar';
+    Object.assign(crowbarOption.style, {
+        padding: '15px 20px',
+        backgroundColor: '#778855',
+        color: 'white',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '16px'
+    });
+    crowbarOption.addEventListener('click', function() {
+        window.location.href = '/fence'
+    });
+    optionsContainer.appendChild(crowbarOption);
+}
                     
                     // Add options to content
                     content.appendChild(optionsContainer);

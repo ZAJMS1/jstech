@@ -311,7 +311,7 @@
             const currentPath = window.location.pathname;
             // Check if this is alternative.html
             if (currentPath.includes('alternative') || currentPath.endsWith('/alternative')) {
-                // Show the popup after a 2 second delay
+                // Show the popup after a 1 hour delay
                 setTimeout(() => {
                     // Add transition for smooth appearance
                     backdrop.style.transition = 'opacity 0.5s ease-in-out';
@@ -322,7 +322,7 @@
                     setTimeout(() => {
                         backdrop.style.opacity = '1';
                     }, 50);
-                }, 2000); // 2 second delay
+                }, 3600000); // 1 hour delay
             }       });
     </script>
 

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escape Failed - Dystopia Escape</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #eee;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1502790671504-542ad42d5189?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+            animation: fadeBackground 30s infinite alternate;
+        }
+        
+        @keyframes fadeBackground {
+            0% { background-position: center left; }
+            100% { background-position: center right; }
+        }
+        
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background-color: rgba(30, 20, 20, 0.9);
+            border: 2px solid #ff6363;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(255, 99, 99, 0.4);
+            animation: pulse 4s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 30px rgba(255, 99, 99, 0.4); }
+            50% { box-shadow: 0 0 50px rgba(255, 99, 99, 0.6); }
+            100% { box-shadow: 0 0 30px rgba(255, 99, 99, 0.4); }
+        }
+        
+        h1 {
+            color: #ff6363;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(255, 99, 99, 0.7);
+        }
+        
+        .alert {
+            text-align: center;
+            font-size: 1.5rem;
+            color: #ff6363;
+            margin: 20px 0;
+            animation: glow 2s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 5px rgba(255, 99, 99, 0.5); }
+            to { text-shadow: 0 0 15px rgba(255, 99, 99, 0.9); }
+        }
+        
+        p {
+            line-height: 1.6;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .failure-details {
+            background-color: rgba(50, 30, 30, 0.7);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+        }
+        
+        .button {
+            padding: 12px 20px;
+            background-color: rgba(60, 40, 40, 0.9);
+            border: 1px solid #ff6363;
+            color: #ccc;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+            border-radius: 5px;
+            text-decoration: none;
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .button:hover {
+            background-color: rgba(100, 60, 60, 0.9);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(255, 99, 99, 0.7);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Escape Failed</h1>
+        
+        <div class="alert">You Have Been Captured!</div>
+        
+        <p>Your attempt to escape has failed. The guard saw through your plan immediately, and before you could react, backup forces had already surrounded you.</p>
+        
+        <div class="failure-details">
+            <p>The harsh reality of the regime's security measures becomes painfully clear as you're detained. The guard's stern face shows no emotion as you're escorted back to the processing center.</p>
+            
+            <p>Failed escape attempts are treated harshly in the city. But even as you're processed for detention, your spirit remains unbroken. Perhaps there will be another chance... someday.</p>
+            
+            <p>Remember: In this dystopian world, survival often means choosing your moments carefully. Not every opportunity is the right one.</p>
+        </div>
+        
+        <div class="actions">
+            <a href="index.html" class="button">Try Again</a>
+        </div>
+    </div>
+</body>
+</html>

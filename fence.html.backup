@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dystopian Escape</title>
+    <title>Dystopian Escape - Perimeter Fence</title>
     <link rel="stylesheet" href="css/styles.css">
     <!-- Updated to ES modules version of Three.js -->
     <script type="importmap">
@@ -17,6 +17,60 @@
 <script>
     // Add event listeners to restart buttons to clear inventory
     document.addEventListener('DOMContentLoaded', function() {
+    // Auto-trigger border encounter with error handling
+    setTimeout(() => {
+      try {
+        // Ensure game progress is properly set up
+        if (typeof gameProgress === 'undefined') {
+          window.gameProgress = {
+            eventInProgress: false,
+            borderReached: false,
+            storyPhase: 'border',
+            hasBackpack: localStorage.getItem('hasBackpack') === 'true'
+          };
+        }
+        
+        // Force trigger the border encounter directly
+        console.log("Auto-triggering border encounter...");
+        triggerBorderEncounter();
+        
+        // If border encounter fails, show error after a delay
+        setTimeout(() => {
+          if (!document.getElementById('border-encounter')) {
+            console.error("Border encounter failed to load");
+            document.getElementById('loading-error').style.display = 'flex';
+          }
+        }, 2000);
+      } catch (error) {
+        console.error("Error triggering border encounter:", error);
+        document.getElementById('loading-error').style.display = 'flex';
+      }
+    }, 500); // Small delay to ensure page is loaded
+    
+    // Fix any displayMessage function issues
+    window.displayMessage = window.displayMessage || function(message, duration) {
+      console.log("Message:", message);
+      const messageElement = document.createElement('div');
+      messageElement.textContent = message;
+      messageElement.style.position = 'absolute';
+      messageElement.style.top = '10px';
+      messageElement.style.left = '50%';
+      messageElement.style.transform = 'translateX(-50%)';
+      messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+      messageElement.style.color = 'white';
+      messageElement.style.padding = '10px 20px';
+      messageElement.style.borderRadius = '5px';
+      messageElement.style.fontFamily = 'Courier New, monospace';
+      messageElement.style.fontSize = '16px';
+      messageElement.style.zIndex = '100';
+      document.body.appendChild(messageElement);
+      
+      setTimeout(() => {
+        messageElement.style.opacity = '0';
+        messageElement.style.transition = 'opacity 1s';
+        setTimeout(() => messageElement.remove(), 1000);
+      }, duration || 3000);
+    };
         document.querySelectorAll('.restart-game, #restart-game').forEach(button => {
             button.addEventListener('click', function() {
                 // Clear localStorage before restarting
@@ -201,6 +255,48 @@
             font-size: 12px;
             color: #aaa;
         }
+        
+        #loading-error {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #loading-error h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        #loading-error p {
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+        
+        #go-back-btn {
+            padding: 12px 24px;
+            background-color: #4455aa;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #go-back-btn:hover {
+            background-color: #5566bb;
+        }
     </style>
 <script src="js/save-system.js"></script>
 </head>
@@ -264,7 +360,7 @@
                 setTimeout(() => {
                     backdrop.style.opacity = '1';
                 }, 50);
-            }, 3600000); // 2 second delay
+            }, 2000); // 2 second delay
         });
     </script>
 
@@ -683,7 +779,7 @@
                 
                 // Wall section creation function placeholder
                 function createWallSection(width, height, depth, x, y, z, material) {
-                    // Return empty mesh that doesn't render
+                    // Return empty mesh that does not render
                     const wall = new THREE.Mesh(
                         new THREE.BoxGeometry(0, 0, 0),
                         material
@@ -695,7 +791,7 @@
                 
                 // Window creation function placeholder
                 function createWindow(width, height, x, y, z, rotationY) {
-                    // Return empty group that doesn't render
+                    // Return empty group that does not render
                     const windowGroup = new THREE.Group();
                     windowGroup.position.set(x, y, z);
                     windowGroup.rotation.y = rotationY || 0;
@@ -1550,7 +1646,7 @@
                     });
                     
                     // Replace animated fog particles with a simple height fog effect
-                    // This creates a more realistic atmospheric effect that doesn't look choppy
+                    // This creates a more realistic atmospheric effect that does not look choppy
                     
                     // Add volumetric fog effect for atmosphere
                     function addAtmosphericFog(outsideGroup) {
@@ -3274,7 +3370,7 @@ const rightMidArmGroup = new THREE.Group();
                             // Skip player mesh and non-collidable objects
                             const obj = intersection.object;
                             
-                            // Skip if it's part of the player model
+                            // Skip if it is part of the player model
                             if (obj === player || (obj.parent && (obj.parent === player || obj.parent.parent === player))) {
                                 return false;
                             }
@@ -3355,12 +3451,12 @@ const rightMidArmGroup = new THREE.Group();
                 let dialogueBox = null;
                 let skipButton = null;
                 
-                // Initialize the game state first
+                // Game progression variables - Set to escape phase directly 
                 let gameProgress = {
-                    hasBackpack: true,
-                    storyPhase: 'escape',
-                    borderReached: false,
-                    eventInProgress: false
+                    hasBackpack: true, // Player has backpack in alternative route scenario
+                    storyPhase: 'escape', // Directly set to escape phase to skip intro
+                    checkpointTriggered: false,
+                    borderReached: false
                 };
                 
                 let lastFrameTime = 0;
@@ -3432,7 +3528,7 @@ const rightMidArmGroup = new THREE.Group();
                     materials.wallInterior
                 );
                 // Remove the doorway (creating a hole in the wall)
-                // Instead of adding, we just don't add this mesh
+                // Instead of adding, we just do not add this mesh
                 
                 // Kitchen wall (perpendicular to living room wall)
                 const kitchenWall = createWallSection(
@@ -3474,7 +3570,7 @@ const rightMidArmGroup = new THREE.Group();
                 
                 // Living Room Furniture
                 const livingRoomGroup = new THREE.Group();
-                // Moved the entire living room group to ensure it's properly positioned
+                // Moved the entire living room group to ensure it is properly positioned
                 livingRoomGroup.position.set(0, 0, 5); // Changed z from 10 to 5
                 // House element removed
                 
@@ -3675,7 +3771,7 @@ const rightMidArmGroup = new THREE.Group();
                 
                 // Dining Room and Kitchen
                 const diningRoomGroup = new THREE.Group();
-                // Adjust position so it's more centered in the dining area and away from walls
+                // Adjust position so it is more centered in the dining area and away from walls
                 // Moving it a bit toward the center to avoid wall intersections
                 diningRoomGroup.position.set(15, 0, 10); // Changed from z=15 to z=10
                 // House element removed
@@ -3776,7 +3872,7 @@ const rightMidArmGroup = new THREE.Group();
                 const counterMaterial = materials.woodLight;
                 const counterTopMaterial = new THREE.MeshStandardMaterial({ color: 0xd9d9d9, roughness: 0.4, metalness: 0.3 });
                 
-                // Base cabinets - moved slightly so they don't overlap with walls
+                // Base cabinets - moved slightly so they do not overlap with walls
                 const counterBaseGeom = new THREE.BoxGeometry(10, 3, 2); // Reduced width from 12 to 10
                 const counterBase = new THREE.Mesh(counterBaseGeom, counterMaterial);
                 counterBase.position.set(0, 1.5, -7); // Changed z from -8 to -7
@@ -4136,346 +4232,6 @@ const rightMidArmGroup = new THREE.Group();
                 bathroomLight.shadow.mapSize.height = 1024;
                 // House element removed
 
-                // Add border fence
-                const fenceGroup = new THREE.Group();
-                fenceGroup.position.set(0, 0, 45); // Changed from 120 to 45
-
-                // Create fence posts and sections
-                for (let x = -50; x <= 50; x += 4) {
-                    // Fence post
-                    const post = new THREE.Mesh(
-                        new THREE.BoxGeometry(0.4, 8, 0.4),
-                        new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 })
-                    );
-                    post.position.set(x, 4, 0);
-                    post.castShadow = true;
-                    post.receiveShadow = true;
-                    fenceGroup.add(post);
-
-                    // Barbed wire coils
-                    const coilGeometry = new THREE.TorusGeometry(0.3, 0.05, 8, 16);
-                    const barbedWireMaterial = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.6 });
-                    
-                    for (let h = 0; h < 3; h++) {
-                        const coil = new THREE.Mesh(coilGeometry, barbedWireMaterial);
-                        coil.position.set(x + 2, 7.5 - h * 0.5, 0);
-                        coil.rotation.y = Math.PI / 2;
-                        coil.castShadow = true;
-                        fenceGroup.add(coil);
-                    }
-
-                    // Chain-link fence sections
-                    if (x < 48) {
-                        const chainLink = new THREE.Mesh(
-                            new THREE.PlaneGeometry(4, 8),
-                            new THREE.MeshStandardMaterial({
-                                color: 0xcccccc,
-                                roughness: 0.6,
-                                metalness: 0.4,
-                                transparent: true,
-                                opacity: 0.8,
-                                side: THREE.DoubleSide
-                            })
-                        );
-                        chainLink.position.set(x + 2, 4, 0);
-                        chainLink.receiveShadow = true;
-                        fenceGroup.add(chainLink);
-
-                        // Add cross supports
-                        const crossSupport = new THREE.Mesh(
-                            new THREE.BoxGeometry(4.2, 0.2, 0.1),
-                            new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 })
-                        );
-                        crossSupport.position.set(x + 2, 4, 0);
-                        crossSupport.castShadow = true;
-                        fenceGroup.add(crossSupport);
-                    }
-                }
-
-                scene.add(fenceGroup);
-
-                // Add guard character
-                const guardGroup = new THREE.Group();
-                guardGroup.position.set(6, 0, 110); // Changed from z=105 to z=110
-                guardGroup.rotation.y = -3 * Math.PI / 4;
-                guardGroup.scale.set(3, 3, 3);
-
-                // Create guard body
-                const guardBody = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.4, 0.4, 1.5, 8), // Changed height from 1.8 to 1.5
-                    new THREE.MeshStandardMaterial({ color: 0x1a472a }) // Dark green uniform
-                );
-                guardBody.position.y = 0.75; // Adjusted from 0.9 to 0.75 to maintain proper grounding
-                guardGroup.add(guardBody);
-
-                // Guard head
-                const guardHead = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.25, 16, 16),
-                    new THREE.MeshStandardMaterial({ color: 0xd4c4ac }) // Skin tone
-                );
-                guardHead.position.y = 1.7;
-                guardGroup.add(guardHead);
-
-                // Guard hat
-                const guardHat = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.3, 0.3, 0.2, 8),
-                    new THREE.MeshStandardMaterial({ color: 0x1a472a }) // Match uniform
-                );
-                guardHat.position.y = 1.85;
-                guardGroup.add(guardHat);
-
-                // Guard hat visor
-                const hatVisor = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.4, 0.05, 0.2),
-                    new THREE.MeshStandardMaterial({ color: 0x1a472a })
-                );
-                hatVisor.position.set(0.1, 1.8, 0);
-                guardGroup.add(hatVisor);
-
-                // Arms
-                const armGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.8, 8);
-                const armMaterial = new THREE.MeshStandardMaterial({ color: 0x1a472a });
-
-                const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-                leftArm.position.set(-0.5, 1.5, 0); // Swapped from 0.5 to -0.5
-                leftArm.rotation.z = Math.PI / 4; // Inverted from -Math.PI/4
-                guardGroup.add(leftArm);
-
-                const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-                rightArm.position.set(0.5, 1.5, 0); // Swapped from -0.5 to 0.5
-                rightArm.rotation.z = -Math.PI / 4; // Inverted from Math.PI/4
-                guardGroup.add(rightArm);
-
-                // Legs
-                const legGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.9, 8);
-                const legMaterial = new THREE.MeshStandardMaterial({ color: 0x1a472a });
-
-                const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-                leftLeg.position.set(0.2, 0.45, 0);
-                guardGroup.add(leftLeg);
-
-                const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-                rightLeg.position.set(-0.2, 0.45, 0);
-                guardGroup.add(rightLeg);
-
-                // Add rifle prop
-                const rifleGroup = new THREE.Group();
-                
-                const rifleBody = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.1, 0.2, 1),
-                    new THREE.MeshStandardMaterial({ color: 0x4a3b2a }) // Wood color
-                );
-                rifleGroup.add(rifleBody);
-
-                const rifleBarrel = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.05, 0.05, 0.8, 8),
-                    new THREE.MeshStandardMaterial({ color: 0x1a1a1a }) // Dark metal
-                );
-                rifleBarrel.rotation.x = Math.PI / 2;
-                rifleBarrel.position.z = 0.4;
-                rifleGroup.add(rifleBarrel);
-
-                rifleGroup.position.set(-0.6, 1.5, 0.2);
-                rifleGroup.rotation.y = Math.PI / 4;
-                guardGroup.add(rifleGroup);
-
-                scene.add(guardGroup);
-
-                // Main body - more complex shape with subtle curve
-                const bodyGeometry = new THREE.BoxGeometry(6, 2.2, 2.8);
-                const bodyMaterial = new THREE.MeshStandardMaterial({ 
-                    color: 0xcc2200,
-                    roughness: 0.6,
-                    metalness: 0.4
-                });
-                const truckBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
-                truckBody.position.y = 1.5;
-
-                // Add body details - side panels with slight indent
-                const sidePanel = new THREE.Mesh(
-                    new THREE.BoxGeometry(5.8, 0.8, 0.1),
-                    new THREE.MeshStandardMaterial({ color: 0xbb1100 })
-                );
-                sidePanel.position.set(0, 1.2, 1.4);
-                truckBody.add(sidePanel);
-
-                const sidePanelRight = sidePanel.clone();
-                sidePanelRight.position.z = -1.4;
-                truckBody.add(sidePanelRight);
-
-                // Front grill - more detailed
-                const grillGeometry = new THREE.BoxGeometry(0.2, 1.2, 2.4);
-                const grillMaterial = new THREE.MeshStandardMaterial({ 
-                    color: 0x222222,
-                    metalness: 0.8,
-                    roughness: 0.2
-                });
-                const grill = new THREE.Mesh(grillGeometry, grillMaterial);
-                grill.position.set(-2.9, 1.5, 0);
-                truckBody.add(grill);
-
-                // Grill mesh pattern
-                for (let i = 0; i < 6; i++) {
-                    const grillBar = new THREE.Mesh(
-                        new THREE.BoxGeometry(0.1, 0.1, 1.8),
-                        grillMaterial
-                    );
-                    grillBar.position.set(-2.95, 1.2 + i * 0.2, 0);
-                    truckBody.add(grillBar);
-                }
-
-                // Front bumper with chrome finish
-                const bumperMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xcccccc,
-                    metalness: 0.9,
-                    roughness: 0.1
-                });
-                const bumper = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.4, 0.4, 2.9),
-                    bumperMaterial
-                );
-                bumper.position.set(-3, 0.8, 0);
-                truckBody.add(bumper);
-
-                // License plate
-                const plateMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xffffff,
-                    metalness: 0.5,
-                    roughness: 0.5
-                });
-                const plate = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.1, 0.4, 0.8),
-                    plateMaterial
-                );
-                plate.position.set(-3.05, 1.1, 0);
-                truckBody.add(plate);
-
-                truckGroup.add(truckBody);
-
-                // Enhanced cabin with better proportions
-                const cabin = new THREE.Mesh(
-                    new THREE.BoxGeometry(3, 2, 2.8),
-                    bodyMaterial
-                );
-                cabin.position.set(-1.5, 2.6, 0);
-
-                // Cabin roof with slight curve
-                const roofGeometry = new THREE.BoxGeometry(3.2, 0.2, 3);
-                const roof = new THREE.Mesh(roofGeometry, bodyMaterial);
-                roof.position.y = 1.1;
-                cabin.add(roof);
-
-                // Window frames - chrome trim
-                const windowFrame = new THREE.Mesh(
-                    new THREE.BoxGeometry(2.6, 0.1, 2.9),
-                    bumperMaterial
-                );
-                windowFrame.position.set(0, 0.9, 0);
-                cabin.add(windowFrame);
-
-                truckGroup.add(cabin);
-
-                // Enhanced windows with better transparency and reflection
-                const windowMaterial = new THREE.MeshPhysicalMaterial({
-                    color: 0x88ccff,
-                    transparent: true,
-                    opacity: 0.3,
-                    metalness: 0.9,
-                    roughness: 0.1,
-                    envMapIntensity: 1,
-                    clearcoat: 1.0,
-                    clearcoatRoughness: 0.1
-                });
-
-                // Windshield with better angle
-                const windshield = new THREE.Mesh(
-                    new THREE.PlaneGeometry(2.5, 1.5),
-                    windowMaterial
-                );
-                windshield.position.set(-2.6, 2.8, 0);
-                windshield.rotation.y = Math.PI / 2;
-                windshield.rotation.x = Math.PI * 0.02; // Slight angle
-                truckGroup.add(windshield);
-
-                // Side windows with frame detail
-                const sideWindowGeom = new THREE.Shape();
-                sideWindowGeom.moveTo(0, 0);
-                sideWindowGeom.lineTo(2.8, 0);
-                sideWindowGeom.lineTo(2.8, 1.2);
-                sideWindowGeom.lineTo(2.3, 1.2);
-                sideWindowGeom.lineTo(0, 1.2);
-                sideWindowGeom.lineTo(0, 0);
-
-                const sideWindowShape = new THREE.ShapeGeometry(sideWindowGeom);
-                const sideWindow = new THREE.Mesh(sideWindowShape, windowMaterial);
-                sideWindow.position.set(-2.9, 2.2, 1.41);
-                truckGroup.add(sideWindow);
-
-                const sideWindow2 = sideWindow.clone();
-                sideWindow2.position.z = -1.41;
-                truckGroup.add(sideWindow2);
-
-                // Enhanced wheels with better detail
-                const wheelGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.4, 24);
-                const tireMaterial = new THREE.MeshStandardMaterial({ 
-                    color: 0x222222,
-                    roughness: 0.8
-                });
-                const wheelRimMaterial = new THREE.MeshStandardMaterial({ 
-                    color: 0xcccccc,
-                    metalness: 0.8,
-                    roughness: 0.2
-                });
-
-                const wheelPositions = [
-                    [-2.5, 0.6, 1.5],  // Front left
-                    [-2.5, 0.6, -1.5], // Front right
-                    [1.5, 0.6, 1.5],   // Back left
-                    [1.5, 0.6, -1.5]   // Back right
-                ];
-
-                wheelPositions.forEach(pos => {
-                    const wheelGroup = new THREE.Group();
-                    wheelGroup.position.set(...pos);
-                    
-                    // Tire
-                    const tire = new THREE.Mesh(wheelGeometry, tireMaterial);
-                    tire.rotation.z = Math.PI / 2;
-                    wheelGroup.add(tire);
-                    
-                    // Rim
-                    const rim = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.3, 0.3, 0.41, 8),
-                        wheelRimMaterial
-                    );
-                    rim.rotation.z = Math.PI / 2;
-                    wheelGroup.add(rim);
-                    
-                    // Hub cap
-                    const hubCap = new THREE.Mesh(
-                        new THREE.CircleGeometry(0.15, 8),
-                        wheelRimMaterial
-                    );
-                    hubCap.position.y = 0.21;
-                    hubCap.rotation.y = Math.PI / 2;
-                    wheelGroup.add(hubCap);
-                    
-                    truckGroup.add(wheelGroup);
-                });
-
-                // Mark objects as collidable
-                fenceGroup.traverse(obj => {
-                    if (obj.isMesh) {
-                        obj.userData.collidable = true;
-                    }
-                });
-
-                truckGroup.traverse(obj => {
-                    if (obj.isMesh) {
-                        obj.userData.collidable = true;
-                    }
-                });
-
                 // Initialize audio effects
                 function initAudioEffects() {
                     // Set up ambient sounds
@@ -4483,7 +4239,7 @@ const rightMidArmGroup = new THREE.Group();
                     
                     // Set volume
                     ambientWind.volume = 0.3;
-                    ambientWind.loop = false; // Ensure it doesn't loop
+                    ambientWind.loop = false; // Ensure it does not loop
                     
                     // Don't start playing on first click
                     // We'll play it only when the cutscene starts
@@ -4494,12 +4250,12 @@ const rightMidArmGroup = new THREE.Group();
                 
                 // Function to add an object to collidable list
                 function addToCollidables(object) {
-                    // If it's a mesh, add it directly
+                    // If it is a mesh, add it directly
                     if (object.isMesh) {
                         collidableObjects.push(object);
                     }
                     
-                    // If it's a group, add all its children recursively
+                    // If it is a group, add all its children recursively
                     if (object.children && object.children.length > 0) {
                         object.children.forEach(child => {
                             if (child.isMesh) {
@@ -4543,7 +4299,7 @@ const rightMidArmGroup = new THREE.Group();
                 
                 // Create dialogue UI elements
                 function createDialogueUI() {
-                    // Create dialogue box if it doesn't exist
+                    // Create dialogue box if it does not exist
                     if (!dialogueBox) {
                         dialogueBox = document.createElement('div');
                         dialogueBox.id = 'dialogue-box';
@@ -4566,7 +4322,7 @@ const rightMidArmGroup = new THREE.Group();
                         document.body.appendChild(dialogueBox);
                     }
                     
-                    // Create skip button if it doesn't exist
+                    // Create skip button if it does not exist
                     if (!skipButton) {
                         skipButton = document.createElement('button');
                         skipButton.id = 'skip-button';
@@ -4622,7 +4378,7 @@ const rightMidArmGroup = new THREE.Group();
                     const squaredDist = dx*dx + dz*dz;
                     const squaredRadius = borderCheckpoint.radius * borderCheckpoint.radius;
                     
-                    // If player is at the border checkpoint and it hasn't been triggered yet
+                    // If player is at the border checkpoint and it has not been triggered yet
                     if (squaredDist < squaredRadius && !gameProgress.eventInProgress && !document.getElementById("border-encounter")) {
                         console.log("Border checkpoint reached!");
                         
@@ -4639,245 +4395,275 @@ const rightMidArmGroup = new THREE.Group();
                 }
                 
                 // Trigger a story event at the border
-                function triggerBorderEncounter() {
-                    // Prevent multiple trigger
-                    if (gameProgress.eventInProgress) return;
-                    gameProgress.eventInProgress = true;
+                
+function triggerBorderEncounter() {
+    // Prevent multiple trigger
+    if (gameProgress.eventInProgress) return;
+    gameProgress.eventInProgress = true;
 
-                    // Disable player controls during the event
-                    blocker.style.display = 'none';
-                    
-                    // Create border checkpoint UI - optimize for better performance
-                    const encounterContainer = document.createElement('div');
-                    encounterContainer.id = 'border-encounter';
-                    
-                    // Set styles with minimal reflows
-                    Object.assign(encounterContainer.style, {
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: '70%',
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        color: 'white',
-                        padding: '30px',
-                        borderRadius: '10px',
-                        textAlign: 'center',
-                        zIndex: '1000',
-                        opacity: '0',
-                        transition: 'opacity 0.3s ease-in'
-                    });
-                    
-                    // Prepare content first, then add to DOM once
-                    const content = document.createDocumentFragment();
-                    
-                    // Add title
-                    const title = document.createElement('h2');
-                    title.textContent = 'Patrol Guard';
+    // Disable player controls during the event
+    blocker.style.display = 'none';
+    
+    // Create border checkpoint UI
+    const encounterContainer = document.createElement('div');
+    encounterContainer.id = 'border-encounter';
+    
+    // Set styles
+    Object.assign(encounterContainer.style, {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '70%',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        color: 'white',
+        padding: '30px',
+        borderRadius: '10px',
+        textAlign: 'center',
+        zIndex: '1000',
+        opacity: '0',
+        transition: 'opacity 0.3s ease-in'
+    });
+    
+    // Prepare content
+    const content = document.createDocumentFragment();
+    
+    // Add title
+    const title = document.createElement('h2');
+    title.textContent = 'Perimeter Fence';
+    title.style.marginBottom = '20px';
+    content.appendChild(title);
+    
+    // Add description
+    const description = document.createElement('p');
+    description.innerHTML = 'You have located a section of fence with minimal security coverage, but it is still a dangerous crossing point.';
+    description.style.marginBottom = '30px';
+    description.style.lineHeight = '1.5';
+    content.appendChild(description);
+    
+    // Create options
+    const optionsContainer = document.createElement('div');
+    Object.assign(optionsContainer.style, {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '15px'
+    });
+    
+    // Add choice options with different colors
+    
+    // Option 1: Cut through using your pocket knife
+    const option1 = document.createElement('button');
+    option1.textContent = 'Cut through using your pocket knife';
+    Object.assign(option1.style, {
+        padding: '15px 20px',
+        backgroundColor: '#445577',
+        color: 'white',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '16px'
+    });
+    
+    // Check if required item is in inventory
+    const hasRequiredItem = window.playerInventory && window.playerInventory.hasItem('Pocket Knife');
+    if (!hasRequiredItem) {
+        option1.disabled = true;
+        option1.style.backgroundColor = '#555555';
+        option1.style.cursor = 'not-allowed';
+        option1.textContent += ' (Requires Pocket Knife)';
+    }
+    option1.addEventListener('click', function() {
+        // Determine outcome based on probability
+        const success = Math.random() < 0.8;
+        
+        // Show outcome popup
+        showOutcomePopup(
+            success, 
+            'The fence wire yields to your knife, creating an opening just large enough to squeeze through undetected.', 
+            'While cutting, you accidentally trigger a hidden vibration sensor in the fence. Alarms blare as spotlights turn toward your position.', 
+            'success.html', 
+            'game.html'
+        );
+        
+        // Remove encounter UI
+        encounterContainer.style.opacity = '0';
+        setTimeout(() => encounterContainer.remove(), 300);
+    });
+    optionsContainer.appendChild(option1);
 
-                    title.style.marginBottom = '20px';
-                    content.appendChild(title);
-                    
-                    // Add description
-                    const description = document.createElement('p');
-                    description.innerHTML = 'A guard on patrol is blocking your way. You need to find a way to get past him safely.<br><br>What will you do?';
+    // Option 2: Climb over during shift change
+    const option2 = document.createElement('button');
+    option2.textContent = 'Climb over during shift change';
+    Object.assign(option2.style, {
+        padding: '15px 20px',
+        backgroundColor: '#557755',
+        color: 'white',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '16px'
+    });
+    
+    option2.addEventListener('click', function() {
+        // Determine outcome based on probability
+        const success = Math.random() < 0.5;
+        
+        // Show outcome popup
+        showOutcomePopup(
+            success, 
+            'Timing your climb perfectly during guard shift rotation, you make it over the fence while attention is diverted.', 
+            'The new shift arrives early, catching you halfway up the fence with nowhere to hide.', 
+            'success.html', 
+            'game.html'
+        );
+        
+        // Remove encounter UI
+        encounterContainer.style.opacity = '0';
+        setTimeout(() => encounterContainer.remove(), 300);
+    });
+    optionsContainer.appendChild(option2);
 
-                    description.style.marginBottom = '30px';
-                    description.style.lineHeight = '1.5';
-                    content.appendChild(description);
-                    
-                    // Create options based on inventory
-                    const optionsContainer = document.createElement('div');
-                    Object.assign(optionsContainer.style, {
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '15px'
-                    });
-                    
-                    // Option 1: Try to sneak past
-                    const sneakOption = document.createElement('button');
-                    /sneakOption\.textContent = '[^']*';/
-                    Object.assign(sneakOption.style, {
-                        padding: '15px 20px',
-                        backgroundColor: '#885577',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                    });
-                    sneakOption.addEventListener('click', function() {
-                        // Redirect to sneak page
-                        window.location.href = '/tunnels';
-                    });
-                    optionsContainer.appendChild(sneakOption);
-                    
-                    // Option 2: Look for alternative route
-                    const alternativeOption = document.createElement('button');
-    alternativeOption.textContent = 'Try hiding in the bushes';
+    // Option 3: Dig under the fence
+    const option3 = document.createElement('button');
+    option3.textContent = 'Dig under the fence';
+    Object.assign(option3.style, {
+        padding: '15px 20px',
+        backgroundColor: '#775544',
+        color: 'white',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '16px'
+    });
+    
+    option3.addEventListener('click', function() {
+        // Determine outcome based on probability
+        const success = Math.random() < 0.6;
+        
+        // Show outcome popup
+        showOutcomePopup(
+            success, 
+            'The soil near the fence is soft enough to quickly dig a shallow passage underneath, which you cover back up after passing through.', 
+            'While digging, you hit a buried motion sensor cable. Within minutes, guards converge on your position.', 
+            'success.html', 
+            'game.html'
+        );
+        
+        // Remove encounter UI
+        encounterContainer.style.opacity = '0';
+        setTimeout(() => encounterContainer.remove(), 300);
+    });
+    optionsContainer.appendChild(option3);
+    
+    // Add options to content
+    content.appendChild(optionsContainer);
+    
+    // Add all content at once
+    encounterContainer.appendChild(content);
+    document.body.appendChild(encounterContainer);
+    
+    // Force a reflow and fade in
+    setTimeout(() => {
+        encounterContainer.style.opacity = '1';
+    }, 10);
+}
 
-                    /sneakOption\.textContent = '[^']*';/
-                    Object.assign(sneakOption.style, {
-                        padding: '15px 20px',
-                        backgroundColor: '#446688',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                    });
-                    sneakOption.addEventListener('click', function() {
-                        // Redirect to sneak page
-                        window.location.href = '/tunnels'
-                    });
-                    optionsContainer.appendChild(sneakOption);
-                    
-                    // Option 2: Look for alternative route
-                    // Reusing existing alternativeOption
-                    /alternativeOption\.textContent = '[^']*';/
-                    
-    sneakOption.textContent = 'Fight the guard';
-Object.assign(sneakOption.style, {
-                        padding: '15px 20px',
-                        backgroundColor: '#446688',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                    });
-                    sneakOption.addEventListener('click', function() {
-                        // Redirect to failure page
-                        window.location.href = 'failure.html';
-                    });
-                    optionsContainer.appendChild(sneakOption);
-                    
-                    // Option 2: Look for alternative route
-                    // Reusing existing alternativeOption
-                    /alternativeOption\.textContent = '[^']*';/
-                    Object.assign(alternativeOption.style, {
-                        padding: '15px 20px',
-                        backgroundColor: '#558855',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                    });
-                    alternativeOption.addEventListener('click', function() {
-                        // Redirect to alternative route page
-                        window.location.href = 'failure.html';
-                    });
-                    optionsContainer.appendChild(alternativeOption);
-                    
-                    // Option 3: Show crowbar option if available
-                     {
-                        const crowbarOption = document.createElement('button');
-                        crowbarOption.textContent = 'Be nice and try to bribe him with your sandwich';
-                        Object.assign(crowbarOption.style, {
-                            padding: '15px 20px',
-                            backgroundColor: '#778855',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '5px',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                        });
-                        crowbarOption.addEventListener('click', function() {
-                            // Redirect to disguise page
-                            window.location.href = '/success'
-                        });
-                        // Only show fence cutting option if player has knife
-        if (localStorage.getItem('hasKnife') !== 'false') {
-            // Only show fence cutting option if player has knife
-                        {
-                            optionsContainer.appendChild(crowbarOption);
-                        }
-        }
-                    }
-                    
-                    // Add options to content
-                    content.appendChild(optionsContainer);
-                    
-                    // Add all content at once to minimize layout thrashing
-                    encounterContainer.appendChild(content);
-                    document.body.appendChild(encounterContainer);
-                    
-                    // Force a reflow and then fade in - smoother transition
-                    setTimeout(() => {
-                        encounterContainer.style.opacity = '1';
-                    }, 10);
-                }
+// Function to show outcome popup
+function showOutcomePopup(success, successText, failureText, successRedirect, failureRedirect) {
+    // Create outcome popup
+    const outcomeContainer = document.createElement('div');
+    outcomeContainer.id = 'outcome-popup';
+    
+    // Set styles for the container
+    Object.assign(outcomeContainer.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        zIndex: '10000',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        opacity: '0',
+        transition: 'opacity 0.5s ease-in-out'
+    });
+    
+    // Create popup content
+    const popupContent = document.createElement('div');
+    Object.assign(popupContent.style, {
+        backgroundColor: success ? 'rgba(20, 40, 20, 0.95)' : 'rgba(40, 20, 20, 0.95)',
+        color: 'white',
+        padding: '30px',
+        borderRadius: '10px',
+        maxWidth: '500px',
+        width: '80%',
+        border: '2px solid ' + (success ? '#73ff73' : '#ff7373'),
+        boxShadow: '0 0 20px ' + (success ? '#73ff73' : '#ff7373')
+    });
+    
+    // Add title
+    const title = document.createElement('h2');
+    title.textContent = success ? 'Success!' : 'Failure!';
+    title.style.color = success ? '#73ff73' : '#ff7373';
+    title.style.marginBottom = '20px';
+    
+    // Add outcome text
+    const outcomeText = document.createElement('p');
+    outcomeText.textContent = success ? successText : failureText;
+    outcomeText.style.marginBottom = '25px';
+    outcomeText.style.lineHeight = '1.5';
+    
+    // Add continue button
+    const continueButton = document.createElement('button');
+    continueButton.textContent = success ? 'Continue' : 'Try Again';
+    Object.assign(continueButton.style, {
+        padding: '12px 20px',
+        backgroundColor: success ? '#3b6c4a' : '#6c3b3b',
+        color: 'white',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '16px',
+        display: 'block',
+        margin: '0 auto'
+    });
+    
+    // Add click event
+    continueButton.addEventListener('click', function() {
+        // Redirect to appropriate page
+        window.location.href = success ? successRedirect : failureRedirect;
+    });
+    
+    // Assemble the popup
+    popupContent.appendChild(title);
+    popupContent.appendChild(outcomeText);
+    popupContent.appendChild(continueButton);
+    outcomeContainer.appendChild(popupContent);
+    
+    // Add to document
+    document.body.appendChild(outcomeContainer);
+    
+    // Fade in
+    setTimeout(() => {
+        outcomeContainer.style.opacity = '1';
+    }, 50);
+}
+
 
                 // Modify the initialization to enable player controls immediately
                 
                 // Add specific items for this scenario
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set initial game state
-        gameProgress.storyPhase = 'escape';
-        gameProgress.borderReached = false;
-        gameProgress.eventInProgress = false;
-        
-        // Start with controls enabled
-        blocker.style.display = "flex";
-        instructions.style.display = "";
-        
-        // Position player at starting point
-        if (player) {
-            player.position.set(0, 1, 50);
-        }
-        
-        // Enable inventory if player has backpack
-        if (window.playerInventory && gameProgress.hasBackpack) {
-            window.playerInventory.showUI(true);
-        }
-        
-        // Make sure the knife prompt is visible and appears on top of everything
-        // Use setTimeout to ensure it's added after all other elements
-        setTimeout(() => {
-        // Force the prompt to be visible
-        knifePromptContainer.style.zIndex = '9999';
-        
-        // Add a backdrop to make it more visible
-        const backdrop = document.createElement('div');
-        backdrop.id = 'knife-prompt-backdrop';
-        Object.assign(backdrop.style, {
-            position: 'fixed',
-            top: '0',
-            left: '0',
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            zIndex: '9998'
-        });
-        document.body.insertBefore(backdrop, knifePromptContainer);
-        
-        // Add a close event for the backdrop
-        backdrop.addEventListener('click', function(e) {
-            if (e.target === backdrop) {
-                // If they click outside, default to not taking the knife
-                localStorage.setItem('hasKnife', 'false');
-                backdrop.remove();
-                knifePromptContainer.style.display = 'none';
-            }
-        });
-        
-        // Update button event handlers to remove backdrop
-        const yesButton = knifePromptContainer.querySelector('button:first-of-type');
-        const noButton = knifePromptContainer.querySelector('button:last-of-type');
-        
-        const originalYesHandler = yesButton.onclick;
-        yesButton.onclick = function() {
-            backdrop.remove();
-            if (originalYesHandler) originalYesHandler.call(this);
-        };
-        
-        const originalNoHandler = noButton.onclick;
-        noButton.onclick = function() {
-            backdrop.remove();
-            if (originalNoHandler) originalNoHandler.call(this);
-        };
-    }, 500);
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Set a timeout to check if the border encounter is successfully created
+                    setTimeout(() => {
+                        // If the border encounter doesn't exist after 3 seconds, show error screen
+                        if (!document.getElementById('border-encounter')) {
+                            document.getElementById('loading-error').style.display = 'flex';
+                        }
+                    }, 3000);
+                    
                     // Unlock controls immediately
                     blocker.style.display = 'flex';
                     instructions.style.display = '';
@@ -4888,7 +4674,7 @@ Object.assign(sneakOption.style, {
     instructions.style.display = "";
     
     // Display alternative path message
-    displayMessage("You're searching for the underground passage. Look for hidden entrances in the area.", 5000);
+    displayMessage("You are searching for the underground passage. Look for hidden entrances in the area.", 5000);
 
     
     // Ensure inventory is displayed when hasBackpack is true
@@ -4911,7 +4697,7 @@ Object.assign(sneakOption.style, {
                     
                     // Add a message about the alternative route
                     const alternativeMessage = document.createElement('div');
-                    alternativeMessage.textContent = "You've found an alternative route through an abandoned maintenance tunnel. Navigate carefully through the dark.";
+                    alternativeMessage.textContent = "You have found an alternative route through an abandoned maintenance tunnel. Navigate carefully through the dark.";
                     alternativeMessage.style.position = 'absolute';
                     alternativeMessage.style.top = '10px';
                     alternativeMessage.style.left = '50%';
@@ -5365,7 +5151,7 @@ Object.assign(sneakOption.style, {
                                     successChance = 0.6; // 60% chance
                                     break;
                                 case 'crowbar':
-                                    outcomeText = "Using your crowbar, you pry open a rusted sewer grate and slip into the tunnels below. The stench is overwhelming, but it's a clear path under the border.";
+                                    outcomeText = "Using your crowbar, you pry open a rusted sewer grate and slip into the tunnels below. The stench is overwhelming, but it is a clear path under the border.";
                                     successChance = 0.9; // 90% chance with the right tool
                                     break;
                             }
@@ -5484,9 +5270,9 @@ Object.assign(sneakOption.style, {
                     // Add description
                     const description = document.createElement('p');
                     if (success) {
-                        description.textContent = "You successfully slip past the border checkpoint. As dawn breaks, you see the outskirts of the city behind you. You've made it to the wilderness beyond the regime's reach. Freedom awaits.";
+                        description.textContent = "You successfully slip past the border checkpoint. As dawn breaks, you see the outskirts of the city behind you. You have made it to the wilderness beyond the regime's reach. Freedom awaits.";
                     } else {
-                        description.textContent = "An alarm sounds! Searchlights swivel in your direction as guards rush to your position. Despite your efforts, you're surrounded and captured. Your escape attempt has failed... for now.";
+                        description.textContent = "An alarm sounds! Searchlights swivel in your direction as guards rush to your position. Despite your efforts, you are surrounded and captured. Your escape attempt has failed... for now.";
                     }
                     description.style.marginBottom = '30px';
                     description.style.lineHeight = '1.5';
@@ -5820,5 +5606,121 @@ Object.assign(sneakOption.style, {
 
     </script>
 
+
+<script>
+// Direct border encounter trigger
+document.addEventListener('DOMContentLoaded', function() {
+  // Ensure game progress is properly set up
+  if (typeof window.gameProgress === 'undefined') {
+    window.gameProgress = {
+      eventInProgress: false,
+      borderReached: false,
+      storyPhase: 'border',
+      hasBackpack: localStorage.getItem('hasBackpack') === 'true'
+    };
+  }
+  
+  // Fix displayMessage function if it does not exist
+  window.displayMessage = window.displayMessage || function(message, duration) {
+    console.log("Message:", message);
+    const messageElement = document.createElement('div');
+    messageElement.textContent = message;
+    messageElement.style.position = 'absolute';
+    messageElement.style.top = '10px';
+    messageElement.style.left = '50%';
+    messageElement.style.transform = 'translateX(-50%)';
+    messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    messageElement.style.color = 'white';
+    messageElement.style.padding = '10px 20px';
+    messageElement.style.borderRadius = '5px';
+    messageElement.style.fontFamily = 'Courier New, monospace';
+    messageElement.style.fontSize = '16px';
+    messageElement.style.zIndex = '100';
+    document.body.appendChild(messageElement);
+    
+    setTimeout(() => {
+      messageElement.style.opacity = '0';
+      messageElement.style.transition = 'opacity 1s';
+      setTimeout(() => messageElement.remove(), 1000);
+    }, duration || 3000);
+  };
+  
+  // Wait a little longer for all scripts to load and functions to be defined
+  setTimeout(function() {
+    console.log("Trigger timeout executed...");
+    
+    // Check if the function exists
+    if (typeof window.triggerBorderEncounter === 'function') {
+      console.log("Function found, triggering border encounter...");
+      window.triggerBorderEncounter();
+    } else {
+      console.error("triggerBorderEncounter function not found!");
+      
+      // Manual implementation of the encounter UI as a fallback
+      const encounterContainer = document.createElement('div');
+      encounterContainer.id = 'border-encounter';
+      
+      Object.assign(encounterContainer.style, {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '70%',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        color: 'white',
+        padding: '30px',
+        borderRadius: '10px',
+        textAlign: 'center',
+        zIndex: '1000'
+      });
+      
+      // Add a fallback message
+      const fallbackMessage = document.createElement('div');
+      fallbackMessage.innerHTML = '<h2>Loading error</h2><p>We encountered an issue loading this page properly. Please go back and try again.</p>';
+      
+      // Add a back button
+      const backButton = document.createElement('button');
+      backButton.textContent = 'Go Back';
+      backButton.style.padding = '10px 20px';
+      backButton.style.backgroundColor = '#445577';
+      backButton.style.color = 'white';
+      backButton.style.border = 'none';
+      backButton.style.borderRadius = '5px';
+      backButton.style.cursor = 'pointer';
+      backButton.style.fontSize = '16px';
+      backButton.style.marginTop = '20px';
+      
+      backButton.addEventListener('click', function() {
+        window.location.href = '/game';
+      });
+      
+      // Assemble and add to the page
+      fallbackMessage.appendChild(backButton);
+      encounterContainer.appendChild(fallbackMessage);
+      document.body.appendChild(encounterContainer);
+    }
+  }, 1000); // Wait 1 second to ensure everything is loaded
+  
+  // Safety fallback - if nothing appears after 5 seconds, redirect
+  setTimeout(function() {
+    if (!document.getElementById('border-encounter')) {
+      console.warn("No encounter UI detected after 5 seconds, redirecting...");
+      window.location.href = '/game';
+    }
+  }, 5000);
+});
+</script>
+
+<div id="loading-error">
+    <h2>Loading Error</h2>
+    <p>We encountered an issue loading this page properly. Please go back and try again.</p>
+    <button id="go-back-btn">Go Back</button>
+</div>
+
+<script>
+document.getElementById('go-back-btn').addEventListener('click', function() {
+    window.location.href = '/game';
+});
+</script>
 </body>
 </html>
