@@ -32,12 +32,13 @@
         }
         
         .container {
-            width: 80%;
-            max-width: 800px;
+            width: min(90%, 800px);
+            max-height: 90vh;
+            overflow-y: auto;
             background-color: rgba(20, 20, 30, 0.9);
             border: 2px solid #63ff73;
             border-radius: 10px;
-            padding: 30px;
+            padding: clamp(15px, 4vw, 30px);
             box-shadow: 0 0 30px rgba(99, 255, 115, 0.4);
             animation: pulse 4s infinite;
         }
@@ -58,13 +59,13 @@
             color: #63ff73;
             text-align: center;
             margin-bottom: 30px;
-            font-size: 2.5rem;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
             text-shadow: 0 0 10px rgba(99, 255, 115, 0.7);
         }
         
         p {
             line-height: 1.6;
-            font-size: 1.2rem;
+            font-size: clamp(0.9rem, 2.5vw, 1.2rem);
             margin-bottom: 20px;
         }
         
@@ -77,7 +78,7 @@
         
         .congrats {
             text-align: center;
-            font-size: 1.5rem;
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
             color: #63ff73;
             margin: 20px 0;
             animation: glow 2s infinite alternate;
@@ -99,17 +100,17 @@
         }
         
         .button {
-            padding: 12px 20px;
+            padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 20px);
             background-color: rgba(40, 60, 40, 0.9);
             border: 1px solid #63ff73;
             color: #ccc;
             cursor: pointer;
             font-family: 'Courier New', monospace;
-            font-size: 1.1rem;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
             transition: all 0.2s ease;
             border-radius: 5px;
             text-decoration: none;
-            min-width: 150px;
+            min-width: clamp(120px, 20vw, 150px);
             text-align: center;
         }
         
@@ -118,6 +119,24 @@
             color: #fff;
             box-shadow: 0 0 10px rgba(99, 255, 115, 0.7);
             transform: translateY(-2px);
+        }
+
+        @media (max-height: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                margin-bottom: 15px;
+            }
+            
+            .success-details {
+                margin: 15px 0;
+            }
+            
+            .actions {
+                margin-top: 20px;
+            }
         }
     </style>
 </head>
@@ -142,4 +161,4 @@
         </div>
     </div>
 </body>
-</html> 
+</html>
